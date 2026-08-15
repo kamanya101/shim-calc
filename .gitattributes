@@ -1,0 +1,7 @@
+# Normalise line endings. Without this, OneDrive syncing the working tree
+# between machines shows every file as modified purely on CRLF churn.
+* text=auto eol=lf
+*.png binary
+*.ico binary
+*.xls binary
+*.xlsx binary
