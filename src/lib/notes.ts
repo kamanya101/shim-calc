@@ -1,8 +1,8 @@
 /**
  * The notes and cell tooltips from the original "Shim calculator.xls",
- * reproduced as written. This text is the reason the spreadsheet was trusted
- * and passed around, so it ships with the calculator rather than being
- * paraphrased away.
+ * reproduced as written — including the signature, which is how the sheet went
+ * round the forums. This text is the reason it was trusted and passed on, so it
+ * ships with the calculator rather than being paraphrased away.
  */
 
 export const AUTHOR = "Kamanya";

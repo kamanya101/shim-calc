@@ -3,7 +3,7 @@
 A valve-shim calculator and clearance logbook for **KTM LC8 950/990** V-twins.
 Installs to a phone home screen and works with no signal.
 
-It is a rebuild of Kamanya's long-serving `Shim calculator.xls`, which has been
+It is a rebuild of my own long-serving `Shim calculator.xls`, which has been
 passed around the ADVrider community for years. The arithmetic, the tolerances,
 the shim catalogues and the notes all come from that spreadsheet.
 

@@ -78,7 +78,7 @@ ideal shim     = stack − clearance you want`}
           ))}
         </ol>
         <p className="mt-3 text-sm text-faint">
-          — {AUTHOR}, whose spreadsheet this is a rebuild of.
+          — {AUTHOR}. Reproduced from my original spreadsheet, unchanged.
         </p>
       </section>
 
