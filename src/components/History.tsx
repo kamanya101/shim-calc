@@ -6,7 +6,7 @@ import { formatDate, formatOdometer } from "@/lib/format";
 import { sheetStatus } from "@/lib/report";
 import { buildExport, downloadFile, sortRecords } from "@/lib/storage";
 import { useRecords } from "./RecordsProvider";
-import { TrendChart } from "./TrendChart";
+import { AverageDrift, TrendChart } from "./TrendChart";
 import { Button, Card, Chip, PageHeader } from "./ui";
 
 export function History() {
@@ -127,7 +127,10 @@ export function History() {
         })}
       </div>
 
-      <h2 className="mb-2 text-sm font-bold">Wear over time</h2>
+      <h2 className="mb-2 text-sm font-bold">Average drift</h2>
+      <AverageDrift engine={engine} records={records} aim={aim} />
+
+      <h2 className="mt-6 mb-2 text-sm font-bold">Wear over time, valve by valve</h2>
       <TrendChart engine={engine} records={records} />
 
       <h2 className="mt-6 mb-2 text-sm font-bold">Backup</h2>

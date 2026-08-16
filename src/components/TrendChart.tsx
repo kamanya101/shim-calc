@@ -1,9 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { inSpec } from "@/lib/calc";
+import { calculateValve, inSpec } from "@/lib/calc";
 import { formatDate, mm } from "@/lib/format";
-import type { ClearanceRange, EngineSpec, ServiceRecord } from "@/lib/types";
+import type { AimSettings } from "@/lib/report";
+import type {
+  ClearanceRange,
+  EngineSpec,
+  Microns,
+  ServiceRecord,
+  ValveType,
+} from "@/lib/types";
 import { Card, EmptyState } from "./ui";
 
 /**
@@ -28,6 +35,20 @@ type Point = {
   inSpec: boolean;
 };
 
+/** Oldest first, so every chart reads left to right through time. */
+function orderRecords(records: ServiceRecord[]): ServiceRecord[] {
+  return [...records].sort((a, b) => {
+    if (a.odometer !== undefined && b.odometer !== undefined) {
+      return a.odometer - b.odometer;
+    }
+    return a.date.localeCompare(b.date);
+  });
+}
+
+function mean(values: Microns[]): Microns {
+  return Math.round(values.reduce((sum, v) => sum + v, 0) / values.length);
+}
+
 export function TrendChart({
   engine,
   records,
@@ -37,17 +58,7 @@ export function TrendChart({
 }) {
   const [showTable, setShowTable] = useState(false);
 
-  // Oldest first, so the line reads left to right through time.
-  const ordered = useMemo(
-    () =>
-      [...records].sort((a, b) => {
-        if (a.odometer !== undefined && b.odometer !== undefined) {
-          return a.odometer - b.odometer;
-        }
-        return a.date.localeCompare(b.date);
-      }),
-    [records],
-  );
+  const ordered = useMemo(() => orderRecords(records), [records]);
 
   const series = useMemo(() => {
     return engine.positions.map((position) => {
@@ -111,6 +122,230 @@ export function TrendChart({
         </div>
       )}
     </div>
+  );
+}
+
+type SawPoint = {
+  x: number;
+  y: Microns;
+  kind: "found" | "set";
+  label: string;
+  valves: number;
+};
+
+/**
+ * The average gap across one valve type, plotted twice per service: what you
+ * found when you opened it, and what it left the workshop at.
+ *
+ * Those two points share an odometer reading, so each service shows as a
+ * vertical step and the slope between services is wear. That slope is the
+ * thing you cannot get from a single service sheet, and it is the number that
+ * tells you whether note 3 holds true for your engine — whether intakes really
+ * do close up and exhausts really do open out.
+ */
+function buildSawtooth(
+  engine: EngineSpec,
+  records: ServiceRecord[],
+  aim: AimSettings,
+  type: ValveType,
+): SawPoint[] {
+  const positions = engine.positions.filter((p) => p.type === type);
+  const range = engine.clearance[type];
+  const points: SawPoint[] = [];
+
+  orderRecords(records).forEach((record, index) => {
+    const found: Microns[] = [];
+    const set: Microns[] = [];
+
+    for (const position of positions) {
+      const reading = record.readings[position.id];
+      if (reading?.clearance === undefined) continue;
+      const result = calculateValve(reading, range, aim[type], engine.catalogues);
+      found.push(reading.clearance);
+      // A valve left alone leaves at the gap it already had, so the found
+      // value is also the set value — otherwise untouched valves would vanish
+      // from the average and make a service look better than it was.
+      set.push(result.confirmedClearance ?? result.newClearance ?? reading.clearance);
+    }
+
+    if (found.length === 0) return;
+
+    const x = record.odometer ?? index;
+    const label = record.odometer
+      ? record.odometer.toLocaleString()
+      : formatDate(record.date);
+
+    points.push({ x, y: mean(found), kind: "found", label, valves: found.length });
+    points.push({ x, y: mean(set), kind: "set", label, valves: set.length });
+  });
+
+  return points;
+}
+
+export function AverageDrift({
+  engine,
+  records,
+  aim,
+}: {
+  engine: EngineSpec;
+  records: ServiceRecord[];
+  aim: AimSettings;
+}) {
+  const series = useMemo(
+    () =>
+      (["intake", "exhaust"] as ValveType[]).map((type) => ({
+        type,
+        range: engine.clearance[type],
+        points: buildSawtooth(engine, records, aim, type),
+      })),
+    [engine, records, aim],
+  );
+
+  if (series.every((s) => s.points.length === 0)) return null;
+
+  return (
+    <div>
+      <p className="mb-2 text-xs leading-relaxed text-faint">
+        Average of all four valves. Each service steps from the gap you found
+        down or up to the gap you set; the slope between services is the wear.
+      </p>
+      <div className="grid gap-2.5 sm:grid-cols-2">
+        {series.map(({ type, range, points }) => (
+          <Card key={type} className="p-2.5">
+            {/* capitalize stays on the valve type alone — applied to the whole
+                heading it also renders the units as "Mm". */}
+            <h4 className="mb-1 text-xs font-semibold">
+              <span className="capitalize">{type}</span>{" "}
+              <span className="font-mono font-normal text-faint">
+                {mm(range.min)}–{mm(range.max)} mm
+              </span>
+            </h4>
+            {points.length === 0 ? (
+              <p className="py-4 text-center text-[11px] text-faint">no readings</p>
+            ) : (
+              <SawtoothPanel points={points} range={range} type={type} />
+            )}
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SawtoothPanel({
+  points,
+  range,
+  type,
+}: {
+  points: SawPoint[];
+  range: ClearanceRange;
+  type: ValveType;
+}) {
+  const H2 = 104;
+  const values = points.map((p) => p.y);
+  const lo = Math.min(range.min, ...values);
+  const hi = Math.max(range.max, ...values);
+  const padY = Math.max(10, (hi - lo) * 0.15);
+  const yMin = lo - padY;
+  const yMax = hi + padY;
+
+  const xs = points.map((p) => p.x);
+  const xMin = Math.min(...xs);
+  const xMax = Math.max(...xs);
+
+  const plotW = W - PAD.left - PAD.right;
+  const plotH = H2 - PAD.top - PAD.bottom;
+
+  const sx = (x: number) =>
+    PAD.left + (xMax === xMin ? plotW / 2 : ((x - xMin) / (xMax - xMin)) * plotW);
+  const sy = (y: number) =>
+    PAD.top + plotH - ((y - yMin) / (yMax - yMin)) * plotH;
+
+  const path = points
+    .map((p, i) => `${i === 0 ? "M" : "L"}${sx(p.x).toFixed(1)},${sy(p.y).toFixed(1)}`)
+    .join(" ");
+
+  const last = points[points.length - 1];
+
+  return (
+    <svg
+      viewBox={`0 0 ${W} ${H2}`}
+      className="w-full"
+      role="img"
+      aria-label={`Average ${type} gap over ${points.length / 2} services, ending at ${mm(last.y)} mm; tolerance ${mm(range.min)} to ${mm(range.max)} mm`}
+    >
+      <rect
+        x={PAD.left}
+        y={sy(range.max)}
+        width={plotW}
+        height={Math.max(1, sy(range.min) - sy(range.max))}
+        fill="#98a0aa"
+        opacity={0.14}
+      />
+      {[range.max, range.min].map((edge) => (
+        <line
+          key={edge}
+          x1={PAD.left}
+          x2={PAD.left + plotW}
+          y1={sy(edge)}
+          y2={sy(edge)}
+          stroke="#98a0aa"
+          strokeWidth={1}
+          strokeDasharray="3 3"
+          opacity={0.5}
+        />
+      ))}
+      <text x={2} y={sy(range.max) + 3} fontSize={8} fill="#6b727c">
+        {mm(range.max)}
+      </text>
+      <text x={2} y={sy(range.min) + 3} fontSize={8} fill="#6b727c">
+        {mm(range.min)}
+      </text>
+
+      <path d={path} fill="none" stroke={DATA} strokeWidth={2} strokeLinejoin="round" />
+
+      {points.map((p, i) => (
+        <g key={i}>
+          {p.kind === "found" ? (
+            <circle cx={sx(p.x)} cy={sy(p.y)} r={4} fill={DATA} stroke="#16181c" strokeWidth={2} />
+          ) : (
+            // Hollow for "set" — shape, not colour, separates the two, so it
+            // survives colourblindness and a greyscale printout.
+            <circle
+              cx={sx(p.x)}
+              cy={sy(p.y)}
+              r={3.6}
+              fill="#16181c"
+              stroke={DATA}
+              strokeWidth={2}
+            />
+          )}
+          <title>
+            {`${p.label} — ${p.kind === "found" ? "found" : "set"} ${mm(p.y)} mm (mean of ${p.valves})`}
+          </title>
+        </g>
+      ))}
+
+      <text
+        x={Math.min(sx(last.x) + 7, W - 2)}
+        y={sy(last.y) - 6}
+        fontSize={9}
+        fontWeight={700}
+        fill="#e9ebee"
+        textAnchor={sx(last.x) > W - 46 ? "end" : "start"}
+      >
+        {mm(last.y)}
+      </text>
+
+      <text x={PAD.left} y={H2 - 3} fontSize={8} fill="#6b727c">
+        {points[0].label}
+      </text>
+      {xMax !== xMin && (
+        <text x={PAD.left + plotW} y={H2 - 3} fontSize={8} fill="#6b727c" textAnchor="end">
+          {last.label}
+        </text>
+      )}
+    </svg>
   );
 }
 
