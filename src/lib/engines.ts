@@ -10,11 +10,10 @@ import type { EngineSpec, ValvePosition } from "./types";
 function v(
   id: string,
   label: string,
-  short: string,
   bank: string,
   type: "intake" | "exhaust",
 ): ValvePosition {
-  return { id, label, short, bank, type };
+  return { id, label, bank, type };
 }
 
 export const KTM_LC8: EngineSpec = {
@@ -29,14 +28,14 @@ export const KTM_LC8: EngineSpec = {
   },
   catalogues: ["ktm-lc8", "hd"],
   positions: [
-    v("f-ex-l", "Front left exhaust", "Left", "Front cylinder", "exhaust"),
-    v("f-ex-r", "Front right exhaust", "Right", "Front cylinder", "exhaust"),
-    v("f-in-l", "Front left intake", "Left", "Front cylinder", "intake"),
-    v("f-in-r", "Front right intake", "Right", "Front cylinder", "intake"),
-    v("r-in-l", "Rear left intake", "Left", "Rear cylinder", "intake"),
-    v("r-in-r", "Rear right intake", "Right", "Rear cylinder", "intake"),
-    v("r-ex-l", "Rear left exhaust", "Left", "Rear cylinder", "exhaust"),
-    v("r-ex-r", "Rear right exhaust", "Right", "Rear cylinder", "exhaust"),
+    v("f-ex-l", "Front left exhaust", "Front cylinder", "exhaust"),
+    v("f-ex-r", "Front right exhaust", "Front cylinder", "exhaust"),
+    v("f-in-l", "Front left intake", "Front cylinder", "intake"),
+    v("f-in-r", "Front right intake", "Front cylinder", "intake"),
+    v("r-in-l", "Rear left intake", "Rear cylinder", "intake"),
+    v("r-in-r", "Rear right intake", "Rear cylinder", "intake"),
+    v("r-ex-l", "Rear left exhaust", "Rear cylinder", "exhaust"),
+    v("r-ex-r", "Rear right exhaust", "Rear cylinder", "exhaust"),
   ],
 };
 

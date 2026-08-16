@@ -17,10 +17,12 @@ export type ClearanceRange = {
 /** One physical valve, in the order it sits in the engine. */
 export type ValvePosition = {
   id: string;
-  /** "Front left exhaust" — matches the wording of the original spreadsheet. */
+  /**
+   * "Front left exhaust" — matches the wording of the original spreadsheet,
+   * and names the cylinder, the side and the valve type so it reads correctly
+   * with no surrounding context.
+   */
   label: string;
-  /** "Left" — shown inside a section that already names the bank and type. */
-  short: string;
   bank: string;
   type: ValveType;
 };

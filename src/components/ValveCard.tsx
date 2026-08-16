@@ -62,7 +62,10 @@ export function ValveCard({
 
   return (
     <article className="rounded-lg border border-line bg-raised/40 p-3">
-      <h4 className="mb-2 text-sm font-bold">{position.short}</h4>
+      {/* The full name, not just the side. Held vertically a phone shows one
+          card at a time, and nobody should have to scroll back to a section
+          heading to remember which valve they are typing into. */}
+      <h4 className="mb-2 text-sm font-bold">{position.label}</h4>
 
       <div className="flex items-start gap-3">
         <div className="w-28 shrink-0">
