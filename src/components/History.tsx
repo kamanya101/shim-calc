@@ -72,9 +72,9 @@ export function History() {
                     </span>
                     {isActive && <Chip tone="warn">open</Chip>}
                   </div>
-                  {record.title && (
+                  {(record.model || record.title) && (
                     <p className="mt-0.5 truncate text-xs text-muted">
-                      {record.title}
+                      {[record.model, record.title].filter(Boolean).join(" · ")}
                     </p>
                   )}
                   <div className="mt-1.5 flex flex-wrap gap-1.5">

@@ -5,6 +5,7 @@ import { APP_NAME } from "@/lib/app";
 import type { Aim } from "@/lib/calc";
 import { groupsByBank } from "@/lib/engines";
 import { mm, todayIso } from "@/lib/format";
+import { BIKE_MODEL_GROUPS } from "@/lib/models";
 import { sheetStatus } from "@/lib/report";
 import type { ValveType } from "@/lib/types";
 import { useRecords } from "./RecordsProvider";
@@ -67,6 +68,28 @@ export function ServiceSheet() {
               }}
               className="w-full rounded-lg border border-line bg-bg px-2.5 py-2 font-mono text-sm tabular-nums text-ink outline-none placeholder:text-faint/50 focus:border-accent"
             />
+          </Field>
+        </div>
+        <div className="mt-2.5">
+          <Field label="Model">
+            <select
+              value={active.model ?? ""}
+              onChange={(e) =>
+                updateActive((r) => ({ ...r, model: e.target.value || undefined }))
+              }
+              className="w-full rounded-lg border border-line bg-bg px-2.5 py-2 text-sm text-ink outline-none focus:border-accent"
+            >
+              <option value="">Choose your bike…</option>
+              {BIKE_MODEL_GROUPS.map((group) => (
+                <optgroup key={group.label} label={group.label}>
+                  {group.models.map((model) => (
+                    <option key={model} value={model}>
+                      {model}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
           </Field>
         </div>
         <div className="mt-2.5">

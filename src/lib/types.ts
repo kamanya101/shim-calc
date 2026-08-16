@@ -81,6 +81,8 @@ export type ServiceRecord = {
   /** ISO date, no time — a service is a day, not an instant. */
   date: string;
   odometer?: number;
+  /** Which LC8, e.g. "990 Adventure R". Record-keeping only, not a spec. */
+  model?: string;
   title?: string;
   readings: Record<string, ValveReading>;
   createdAt: string;

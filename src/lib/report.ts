@@ -182,6 +182,7 @@ export function recordToCsv(
 ): string {
   const rows: (string | number | undefined)[][] = [
     ["Engine", engine.name + " " + engine.subtitle],
+    ["Model", record.model],
     ["Date", record.date],
     ["Odometer", record.odometer],
     ["Title", record.title],

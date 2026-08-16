@@ -94,6 +94,9 @@ export function RecordsProvider({ children }: { children: React.ReactNode }) {
 
   const startNew = useCallback(() => {
     const record = newRecord(DEFAULT_ENGINE_ID);
+    // Almost nobody owns two LC8s. Carry the bike over from the last service
+    // so it is one less thing to pick every time.
+    record.model = records.length ? sortRecords(records)[0].model : undefined;
     recordsStore.set([record, ...records]);
     activeStore.set(record.id);
   }, [records]);
@@ -115,6 +118,7 @@ export function RecordsProvider({ children }: { children: React.ReactNode }) {
           if (fitted !== undefined) record.readings[position.id] = { shim: fitted };
         }
         record.odometer = source.odometer;
+        record.model = source.model;
       }
       recordsStore.set([record, ...records]);
       activeStore.set(record.id);

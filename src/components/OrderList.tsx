@@ -20,7 +20,9 @@ export function OrderList() {
     <div className="mx-auto max-w-3xl px-4 py-5">
       <PageHeader
         title="Shims to order"
-        subtitle={`${formatDate(active.date)} · ${formatOdometer(active.odometer)}`}
+        subtitle={[active.model, formatDate(active.date), formatOdometer(active.odometer)]
+          .filter(Boolean)
+          .join(" · ")}
       />
 
       {lines.length === 0 ? (

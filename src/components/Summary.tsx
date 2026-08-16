@@ -26,9 +26,14 @@ export function Summary() {
     <div className="mx-auto max-w-3xl px-4 py-5">
       <PageHeader
         title="Summary"
-        subtitle={`${formatDate(active.date)}${
-          active.odometer !== undefined ? ` · ${formatOdometer(active.odometer)}` : ""
-        }${active.title ? ` · ${active.title}` : ""}`}
+        subtitle={[
+          active.model,
+          formatDate(active.date),
+          active.odometer !== undefined ? formatOdometer(active.odometer) : null,
+          active.title,
+        ]
+          .filter(Boolean)
+          .join(" · ")}
       />
 
       {!anyFound ? (
