@@ -1,19 +1,21 @@
 import type { Metadata, Viewport } from "next";
+import { APP_DESCRIPTION, APP_NAME, APP_SHORT_NAME } from "@/lib/app";
+import { Footer } from "@/components/Footer";
 import { RecordsProvider } from "@/components/RecordsProvider";
 import { TabBar } from "@/components/TabBar";
 import { ServiceWorker } from "@/components/ServiceWorker";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Shim Calculator — KTM LC8",
-  description:
-    "Work out valve shim sizes and part numbers for KTM LC8 950/990 engines, and keep a record of your clearances. Works offline.",
+  // Sub-pages set just their own name; the template appends the app's.
+  title: { default: APP_NAME, template: `%s — ${APP_NAME}` },
+  description: APP_DESCRIPTION,
   manifest: "/manifest.webmanifest",
-  applicationName: "Shim Calc",
+  applicationName: APP_SHORT_NAME,
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Shim Calc",
+    title: APP_SHORT_NAME,
   },
   icons: {
     apple: "/icons/apple-touch-icon.png",
@@ -39,6 +41,7 @@ export default function RootLayout({
       <body className="min-h-full">
         <RecordsProvider>
           {children}
+          <Footer />
           <TabBar />
         </RecordsProvider>
         <ServiceWorker />

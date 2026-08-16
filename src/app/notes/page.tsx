@@ -3,7 +3,7 @@ import { KTM_LC8 } from "@/lib/engines";
 import { mm } from "@/lib/format";
 import { AUTHOR, NOTES } from "@/lib/notes";
 
-export const metadata = { title: "Notes — Shim Calculator" };
+export const metadata = { title: "Notes" };
 
 /**
  * Written in the order the job is done, not the order the maths runs. Most

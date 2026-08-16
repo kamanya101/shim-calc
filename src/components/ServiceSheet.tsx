@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { APP_NAME } from "@/lib/app";
 import type { Aim } from "@/lib/calc";
 import { groupsByBank } from "@/lib/engines";
 import { mm, todayIso } from "@/lib/format";
@@ -30,8 +31,8 @@ export function ServiceSheet() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-5">
       <PageHeader
-        title={engine.name}
-        subtitle={engine.subtitle}
+        title={APP_NAME}
+        subtitle={`${engine.name} · ${engine.subtitle}`}
         action={
           <Button variant="ghost" onClick={startNew}>
             New service

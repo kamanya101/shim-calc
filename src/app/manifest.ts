@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { APP_DESCRIPTION, APP_NAME, APP_SHORT_NAME } from "@/lib/app";
 
 /**
  * `display: standalone` is what makes the home-screen icon open the app
@@ -7,10 +8,9 @@ import type { MetadataRoute } from "next";
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Shim Calculator — KTM LC8",
-    short_name: "Shim Calc",
-    description:
-      "Valve shim sizes, part numbers and clearance records for KTM LC8 950/990 engines. Works offline.",
+    name: APP_NAME,
+    short_name: APP_SHORT_NAME,
+    description: APP_DESCRIPTION,
     start_url: "/",
     scope: "/",
     display: "standalone",
