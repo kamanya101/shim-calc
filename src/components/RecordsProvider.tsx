@@ -3,29 +3,40 @@
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import type { Aim } from "@/lib/calc";
 import { DEFAULT_ENGINE_ID, getEngine } from "@/lib/engines";
+import { runMigrations } from "@/lib/migrations";
 import { DEFAULT_AIM_SETTINGS, type AimSettings } from "@/lib/report";
 import { createLocalStore, useHydrated, useLocalStore } from "@/lib/store";
 import {
+  ACTIVE_BIKE_KEY,
   ACTIVE_KEY,
-  AIM_KEY,
+  BIKES_KEY,
   RECORDS_KEY,
   deleteRecord,
   mergeImport,
+  newBike,
   newRecord,
+  recordsForBike,
   sortRecords,
   upsertRecord,
   type ImportResult,
 } from "@/lib/storage";
-import type { EngineSpec, ServiceRecord, ValveType } from "@/lib/types";
+import type { Bike, EngineSpec, ServiceRecord, ValveType } from "@/lib/types";
+
+const AIM_KEY = "shim-calc/aim/v1";
 
 /**
- * The record the app falls back to before anything has been saved. It gets a
- * fixed id so that "the empty sheet" is one identity rather than a new one per
- * render; the first edit persists it and it becomes an ordinary record.
+ * Identities for the empty state, so "no data yet" is one stable bike and one
+ * stable service rather than a new pair on every render. The first edit
+ * persists them and they become ordinary records.
  */
-const DRAFT_ID = "draft";
+const DRAFT_BIKE_ID = "draft-bike";
+const DRAFT_RECORD_ID = "draft";
+
+// Before any store is read. An upgrade must never cost somebody their history.
+runMigrations();
 
 const EMPTY_RECORDS: ServiceRecord[] = [];
+const EMPTY_BIKES: Bike[] = [];
 
 const recordsStore = createLocalStore<ServiceRecord[]>(
   RECORDS_KEY,
@@ -33,8 +44,18 @@ const recordsStore = createLocalStore<ServiceRecord[]>(
   (raw) => (Array.isArray(raw) ? (raw as ServiceRecord[]) : null),
 );
 
+const bikesStore = createLocalStore<Bike[]>(BIKES_KEY, EMPTY_BIKES, (raw) =>
+  Array.isArray(raw) ? (raw as Bike[]) : null,
+);
+
 const activeStore = createLocalStore<string | null>(ACTIVE_KEY, null, (raw) =>
   typeof raw === "string" ? raw : null,
+);
+
+const activeBikeStore = createLocalStore<string | null>(
+  ACTIVE_BIKE_KEY,
+  null,
+  (raw) => (typeof raw === "string" ? raw : null),
 );
 
 const aimStore = createLocalStore<AimSettings>(AIM_KEY, DEFAULT_AIM_SETTINGS, (raw) => {
@@ -46,12 +67,21 @@ type RecordsContext = {
   /** False during server render and hydration — nothing data-driven paints yet. */
   ready: boolean;
   engine: EngineSpec;
+  bikes: Bike[];
+  bike: Bike;
+  /** Services for the selected bike only. */
   records: ServiceRecord[];
+  /** Every service across every bike — for backups, which must be complete. */
+  allRecords: ServiceRecord[];
   active: ServiceRecord;
   aim: AimSettings;
   setAim: (type: ValveType, value: Aim) => void;
   setActiveId: (id: string) => void;
+  setActiveBikeId: (id: string) => void;
   updateActive: (patch: (record: ServiceRecord) => ServiceRecord) => void;
+  updateBike: (patch: Partial<Omit<Bike, "id">>) => void;
+  addBike: () => void;
+  removeBike: (id: string) => void;
   startNew: () => void;
   duplicateAsNew: (id: string) => void;
   remove: (id: string) => void;
@@ -68,38 +98,99 @@ export function useRecords(): RecordsContext {
 
 export function RecordsProvider({ children }: { children: React.ReactNode }) {
   const ready = useHydrated();
-  const records = useLocalStore(recordsStore);
+  const allRecords = useLocalStore(recordsStore);
+  const bikes = useLocalStore(bikesStore);
   const activeId = useLocalStore(activeStore);
+  const activeBikeId = useLocalStore(activeBikeStore);
   const aim = useLocalStore(aimStore);
 
-  // Never mutated — every edit produces a new object — so a deleted draft
-  // comes back blank rather than carrying the old readings.
-  const [draft] = useState(() => newRecord(DEFAULT_ENGINE_ID, DRAFT_ID));
+  // Never mutated — every edit produces new objects — so a deleted draft comes
+  // back blank rather than carrying the old readings.
+  const [draftBike] = useState<Bike>(() => ({
+    ...newBike(DEFAULT_ENGINE_ID, "My LC8"),
+    id: DRAFT_BIKE_ID,
+  }));
+  const [draftRecord] = useState(() =>
+    newRecord(DEFAULT_ENGINE_ID, DRAFT_BIKE_ID, DRAFT_RECORD_ID),
+  );
+
+  const bike = useMemo(
+    () => bikes.find((b) => b.id === activeBikeId) ?? bikes[0] ?? draftBike,
+    [bikes, activeBikeId, draftBike],
+  );
+
+  const records = useMemo(
+    () => recordsForBike(allRecords, bike.id),
+    [allRecords, bike.id],
+  );
 
   const active = useMemo(() => {
     const chosen = records.find((r) => r.id === activeId);
     if (chosen) return chosen;
     if (records.length) return sortRecords(records)[0];
-    return draft;
-  }, [records, activeId, draft]);
+    return bike.id === DRAFT_BIKE_ID
+      ? draftRecord
+      : newRecord(bike.engineId, bike.id, `${DRAFT_RECORD_ID}-${bike.id}`);
+  }, [records, activeId, bike, draftRecord]);
+
+  /** Persist the draft bike alongside whatever else is being written. */
+  const ensureBike = useCallback((): Bike => {
+    if (bikes.some((b) => b.id === bike.id)) return bike;
+    bikesStore.set([...bikes, bike]);
+    activeBikeStore.set(bike.id);
+    return bike;
+  }, [bikes, bike]);
 
   const updateActive = useCallback(
     (patch: (record: ServiceRecord) => ServiceRecord) => {
+      ensureBike();
       const next = patch(active);
-      recordsStore.set(upsertRecord(records, next));
+      recordsStore.set(upsertRecord(allRecords, next));
       if (activeId !== next.id) activeStore.set(next.id);
     },
-    [records, active, activeId],
+    [allRecords, active, activeId, ensureBike],
+  );
+
+  const updateBike = useCallback(
+    (patch: Partial<Omit<Bike, "id">>) => {
+      const current = ensureBike();
+      const next = { ...current, ...patch };
+      bikesStore.set(
+        bikes.some((b) => b.id === next.id)
+          ? bikes.map((b) => (b.id === next.id ? next : b))
+          : [...bikes, next],
+      );
+    },
+    [bikes, ensureBike],
+  );
+
+  const addBike = useCallback(() => {
+    ensureBike();
+    const created = newBike(DEFAULT_ENGINE_ID, `Bike ${bikes.length + 1}`);
+    bikesStore.set([...bikesStore.get(), created]);
+    activeBikeStore.set(created.id);
+    activeStore.set("");
+  }, [bikes.length, ensureBike]);
+
+  const removeBike = useCallback(
+    (id: string) => {
+      const remaining = bikes.filter((b) => b.id !== id);
+      bikesStore.set(remaining);
+      recordsStore.set(allRecords.filter((r) => r.bikeId !== id));
+      if (id === bike.id) {
+        activeBikeStore.set(remaining[0]?.id ?? null);
+        activeStore.set("");
+      }
+    },
+    [bikes, allRecords, bike.id],
   );
 
   const startNew = useCallback(() => {
-    const record = newRecord(DEFAULT_ENGINE_ID);
-    // Almost nobody owns two LC8s. Carry the bike over from the last service
-    // so it is one less thing to pick every time.
-    record.model = records.length ? sortRecords(records)[0].model : undefined;
-    recordsStore.set([record, ...records]);
+    const current = ensureBike();
+    const record = newRecord(current.engineId, current.id);
+    recordsStore.set([record, ...recordsStore.get()]);
     activeStore.set(record.id);
-  }, [records]);
+  }, [ensureBike]);
 
   /**
    * Start the next service pre-filled with the shims this one ended up
@@ -108,8 +199,12 @@ export function RecordsProvider({ children }: { children: React.ReactNode }) {
    */
   const duplicateAsNew = useCallback(
     (id: string) => {
-      const source = records.find((r) => r.id === id);
-      const record = newRecord(source?.engineId ?? DEFAULT_ENGINE_ID);
+      const source = allRecords.find((r) => r.id === id);
+      const current = ensureBike();
+      const record = newRecord(
+        source?.engineId ?? current.engineId,
+        source?.bikeId ?? current.id,
+      );
       if (source) {
         const engine = getEngine(source.engineId);
         for (const position of engine.positions) {
@@ -118,32 +213,38 @@ export function RecordsProvider({ children }: { children: React.ReactNode }) {
           if (fitted !== undefined) record.readings[position.id] = { shim: fitted };
         }
         record.odometer = source.odometer;
-        record.model = source.model;
       }
-      recordsStore.set([record, ...records]);
+      recordsStore.set([record, ...allRecords]);
       activeStore.set(record.id);
     },
-    [records],
+    [allRecords, ensureBike],
   );
 
   const remove = useCallback(
     (id: string) => {
-      const next = deleteRecord(records, id);
+      const next = deleteRecord(allRecords, id);
       recordsStore.set(next);
       if (id === activeId) {
-        activeStore.set(next.length ? sortRecords(next)[0].id : DRAFT_ID);
+        const forBike = sortRecords(recordsForBike(next, bike.id));
+        activeStore.set(forBike[0]?.id ?? "");
       }
     },
-    [records, activeId],
+    [allRecords, activeId, bike.id],
   );
 
   const importJson = useCallback(
     (raw: string): ImportResult => {
-      const result = mergeImport(records, raw);
-      if (result.ok) recordsStore.set(result.records);
+      const result = mergeImport(bikes, allRecords, raw, DEFAULT_ENGINE_ID);
+      if (result.ok) {
+        bikesStore.set(result.bikes);
+        recordsStore.set(result.records);
+        if (!activeBikeId && result.bikes.length) {
+          activeBikeStore.set(result.bikes[0].id);
+        }
+      }
       return result;
     },
-    [records],
+    [bikes, allRecords, activeBikeId],
   );
 
   const setAim = useCallback(
@@ -155,13 +256,20 @@ export function RecordsProvider({ children }: { children: React.ReactNode }) {
 
   const value: RecordsContext = {
     ready,
-    engine: getEngine(active.engineId),
+    engine: getEngine(bike.engineId),
+    bikes: bikes.length ? bikes : [draftBike],
+    bike,
     records,
+    allRecords,
     active,
     aim,
     setAim,
     setActiveId: activeStore.set,
+    setActiveBikeId: activeBikeStore.set,
     updateActive,
+    updateBike,
+    addBike,
+    removeBike,
     startNew,
     duplicateAsNew,
     remove,

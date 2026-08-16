@@ -11,7 +11,7 @@ import { Button, Card, Chip, PageHeader } from "./ui";
  * the engine when you opened it, and what was in it when you closed it.
  */
 export function Summary() {
-  const { ready, engine, active, aim } = useRecords();
+  const { ready, engine, bike, active, aim } = useRecords();
 
   if (!ready) return <p className="p-4 text-sm text-faint">Loading…</p>;
 
@@ -27,7 +27,7 @@ export function Summary() {
       <PageHeader
         title="Summary"
         subtitle={[
-          active.model,
+          bike.model ? `${bike.name} · ${bike.model}` : bike.name,
           formatDate(active.date),
           active.odometer !== undefined ? formatOdometer(active.odometer) : null,
           active.title,

@@ -75,14 +75,33 @@ export type ValveReading = {
   confirmedClearance?: Microns;
 };
 
+/**
+ * A physical motorcycle. Services hang off one of these, so somebody running
+ * two LC8s gets two histories and two sets of wear charts rather than one
+ * incoherent one.
+ *
+ * The id is generated and never shown. The rider identifies the bike by a
+ * nickname, which is all that is needed to tell their own bikes apart — a VIN
+ * or a registration would be a chore to type and would put personal data into
+ * a record that has no business holding any.
+ */
+export type Bike = {
+  id: string;
+  /** "Orange one", "The Dakar". Defaults to the model. */
+  name: string;
+  /** Which LC8, e.g. "990 Adventure R". Record-keeping only, not a spec. */
+  model?: string;
+  engineId: string;
+  createdAt: string;
+};
+
 export type ServiceRecord = {
   id: string;
+  bikeId: string;
   engineId: string;
   /** ISO date, no time — a service is a day, not an instant. */
   date: string;
   odometer?: number;
-  /** Which LC8, e.g. "990 Adventure R". Record-keeping only, not a spec. */
-  model?: string;
   title?: string;
   readings: Record<string, ValveReading>;
   createdAt: string;

@@ -19,8 +19,22 @@ const AIM_OPTIONS: { value: Aim; label: string }[] = [
 ];
 
 export function ServiceSheet() {
-  const { ready, engine, active, aim, setAim, updateActive, startNew } =
-    useRecords();
+  const {
+    ready,
+    engine,
+    bike,
+    bikes,
+    records,
+    active,
+    aim,
+    setAim,
+    setActiveBikeId,
+    updateActive,
+    updateBike,
+    addBike,
+    removeBike,
+    startNew,
+  } = useRecords();
 
   if (!ready) {
     return <p className="p-4 text-sm text-faint">Loading…</p>;
@@ -33,13 +47,87 @@ export function ServiceSheet() {
     <div className="mx-auto max-w-3xl px-4 py-5">
       <PageHeader
         title={APP_NAME}
-        subtitle={`${engine.name} · ${engine.subtitle}`}
+        subtitle={[bike.model, `${engine.name} · ${engine.subtitle}`]
+          .filter(Boolean)
+          .join(" · ")}
         action={
           <Button variant="ghost" onClick={startNew}>
             New service
           </Button>
         }
       />
+
+      <Card className="mb-3 p-3">
+        <div className="mb-2.5 flex items-end gap-2">
+          <div className="min-w-0 flex-1">
+            <Field label="Bike">
+              <select
+                value={bike.id}
+                onChange={(e) => setActiveBikeId(e.target.value)}
+                className="w-full rounded-lg border border-line bg-bg px-2.5 py-2 text-sm text-ink outline-none focus:border-accent"
+              >
+                {bikes.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                    {b.model ? ` — ${b.model}` : ""}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </div>
+          <Button onClick={addBike} className="shrink-0">
+            Add
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2.5">
+          <Field label="Name">
+            <input
+              type="text"
+              placeholder="e.g. Orange one"
+              value={bike.name}
+              onChange={(e) => updateBike({ name: e.target.value })}
+              className="w-full rounded-lg border border-line bg-bg px-2.5 py-2 text-sm text-ink outline-none placeholder:text-faint/50 focus:border-accent"
+            />
+          </Field>
+          <Field label="Model">
+            <select
+              value={bike.model ?? ""}
+              onChange={(e) => updateBike({ model: e.target.value || undefined })}
+              className="w-full rounded-lg border border-line bg-bg px-2.5 py-2 text-sm text-ink outline-none focus:border-accent"
+            >
+              <option value="">Choose…</option>
+              {BIKE_MODEL_GROUPS.map((group) => (
+                <optgroup key={group.label} label={group.label}>
+                  {group.models.map((model) => (
+                    <option key={model} value={model}>
+                      {model}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          </Field>
+        </div>
+
+        {bikes.length > 1 && (
+          <button
+            type="button"
+            onClick={() => {
+              if (
+                confirm(
+                  `Delete "${bike.name}" and all ${records.length} of its services? This can't be undone.`,
+                )
+              ) {
+                removeBike(bike.id);
+              }
+            }}
+            className="mt-2 text-[11px] font-semibold text-bad underline underline-offset-2"
+          >
+            remove this bike
+          </button>
+        )}
+      </Card>
 
       <Card className="mb-4 p-3">
         <div className="grid grid-cols-2 gap-2.5">
@@ -68,28 +156,6 @@ export function ServiceSheet() {
               }}
               className="w-full rounded-lg border border-line bg-bg px-2.5 py-2 font-mono text-sm tabular-nums text-ink outline-none placeholder:text-faint/50 focus:border-accent"
             />
-          </Field>
-        </div>
-        <div className="mt-2.5">
-          <Field label="Model">
-            <select
-              value={active.model ?? ""}
-              onChange={(e) =>
-                updateActive((r) => ({ ...r, model: e.target.value || undefined }))
-              }
-              className="w-full rounded-lg border border-line bg-bg px-2.5 py-2 text-sm text-ink outline-none focus:border-accent"
-            >
-              <option value="">Choose your bike…</option>
-              {BIKE_MODEL_GROUPS.map((group) => (
-                <optgroup key={group.label} label={group.label}>
-                  {group.models.map((model) => (
-                    <option key={model} value={model}>
-                      {model}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
           </Field>
         </div>
         <div className="mt-2.5">

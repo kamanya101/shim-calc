@@ -7,7 +7,7 @@ import { useRecords } from "./RecordsProvider";
 import { Button, Card, EmptyState, PageHeader } from "./ui";
 
 export function OrderList() {
-  const { ready, engine, active, aim, records } = useRecords();
+  const { ready, engine, bike, bikes, active, aim, allRecords } = useRecords();
 
   if (!ready) {
     return <p className="p-4 text-sm text-faint">Loading…</p>;
@@ -20,7 +20,11 @@ export function OrderList() {
     <div className="mx-auto max-w-3xl px-4 py-5">
       <PageHeader
         title="Shims to order"
-        subtitle={[active.model, formatDate(active.date), formatOdometer(active.odometer)]
+        subtitle={[
+          bike.model ? `${bike.name} · ${bike.model}` : bike.name,
+          formatDate(active.date),
+          formatOdometer(active.odometer),
+        ]
           .filter(Boolean)
           .join(" · ")}
       />
@@ -85,7 +89,7 @@ export function OrderList() {
           onClick={() =>
             downloadFile(
               suggestFilename(engine, active, "csv"),
-              recordToCsv(engine, active, aim),
+              recordToCsv(engine, active, aim, bike),
               "text/csv;charset=utf-8",
             )
           }
@@ -96,7 +100,7 @@ export function OrderList() {
           onClick={() =>
             downloadFile(
               `shim-calc-backup-${active.date}.json`,
-              JSON.stringify(buildExport(records), null, 2),
+              JSON.stringify(buildExport(bikes, allRecords), null, 2),
               "application/json",
             )
           }

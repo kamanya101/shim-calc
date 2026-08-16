@@ -14,7 +14,10 @@ export function History() {
   const {
     ready,
     engine,
+    bike,
+    bikes,
     records,
+    allRecords,
     active,
     aim,
     setActiveId,
@@ -42,7 +45,11 @@ export function History() {
     <div className="mx-auto max-w-3xl px-4 py-5">
       <PageHeader
         title="History"
-        subtitle="Every service you've saved on this device"
+        subtitle={
+          bikes.length > 1
+            ? `${bike.name} — switch bikes on the Sheet`
+            : "Every service you've saved on this device"
+        }
       />
 
       <div className="mb-5 space-y-2">
@@ -72,9 +79,9 @@ export function History() {
                     </span>
                     {isActive && <Chip tone="warn">open</Chip>}
                   </div>
-                  {(record.model || record.title) && (
+                  {record.title && (
                     <p className="mt-0.5 truncate text-xs text-muted">
-                      {[record.model, record.title].filter(Boolean).join(" · ")}
+                      {record.title}
                     </p>
                   )}
                   <div className="mt-1.5 flex flex-wrap gap-1.5">
@@ -134,7 +141,7 @@ export function History() {
           onClick={() =>
             downloadFile(
               `shim-calc-backup-${new Date().toISOString().slice(0, 10)}.json`,
-              JSON.stringify(buildExport(records), null, 2),
+              JSON.stringify(buildExport(bikes, allRecords), null, 2),
               "application/json",
             )
           }
