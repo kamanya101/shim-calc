@@ -3,7 +3,7 @@
 import { useId, useState } from "react";
 import { calculateValve, stepShim, type Aim } from "@/lib/calc";
 import { partsForSize } from "@/lib/catalogues";
-import { mm, parseMm } from "@/lib/format";
+import { mm, parseMm, signedMm } from "@/lib/format";
 import { HINTS } from "@/lib/notes";
 import type { ClearanceRange, Microns, ValvePosition, ValveReading } from "@/lib/types";
 import { Chip } from "./ui";
@@ -168,6 +168,45 @@ export function ValveCard({
                   ))}
                 </dl>
               )}
+
+              <div className="mt-3 rounded-lg border border-dashed border-line p-2.5">
+                <div className="flex items-end gap-2.5">
+                  <div className="w-28 shrink-0">
+                    <NumberField
+                      label="Confirmed gap"
+                      hint={HINTS.confirmed}
+                      value={reading?.confirmedClearance}
+                      placeholder={mm(result.newClearance)}
+                      bounds={CLEARANCE_BOUNDS}
+                      boundsMessage="Clearances are well under 1 mm."
+                      onChange={(um) =>
+                        onChange({ ...reading, confirmedClearance: um })
+                      }
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1 pb-2">
+                    {result.confirmedClearance === undefined ? (
+                      <p className="text-[11px] leading-tight text-faint">
+                        Measure again after fitting and record what you actually
+                        got.
+                      </p>
+                    ) : (
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {result.confirmedInSpec ? (
+                          <Chip tone="ok">confirmed in spec</Chip>
+                        ) : (
+                          <Chip tone="bad">confirmed out of spec</Chip>
+                        )}
+                        <span className="text-[11px] text-faint">
+                          {result.confirmedDelta === 0
+                            ? "exactly as predicted"
+                            : `${signedMm(result.confirmedDelta)} vs predicted`}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             </>
           )}
         </div>
@@ -206,6 +245,7 @@ function NumberField({
   value,
   bounds,
   boundsMessage,
+  placeholder = "—",
   onChange,
 }: {
   label: string;
@@ -213,6 +253,7 @@ function NumberField({
   value: Microns | undefined;
   bounds: { min: number; max: number };
   boundsMessage: string;
+  placeholder?: string;
   onChange: (um: Microns | undefined) => void;
 }) {
   const id = useId();
@@ -246,7 +287,7 @@ function NumberField({
         type="text"
         inputMode="decimal"
         autoComplete="off"
-        placeholder="—"
+        placeholder={placeholder}
         value={text}
         onChange={(event) => {
           setText(event.target.value);

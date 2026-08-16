@@ -61,6 +61,16 @@ export type ValveReading = {
    * so the suggestion keeps tracking the measurements until it's overridden.
    */
   chosenShim?: Microns;
+  /**
+   * The gap actually measured after the new shim went in.
+   *
+   * The predicted clearance is arithmetic; this is the engine's answer, and
+   * the two rarely agree exactly — shim thickness tolerance, how the bucket
+   * seats, how the last measurement was taken. Recording it is what makes the
+   * next service's numbers trustworthy, because it is the real starting point
+   * the valve wears away from.
+   */
+  confirmedClearance?: Microns;
 };
 
 export type ServiceRecord = {

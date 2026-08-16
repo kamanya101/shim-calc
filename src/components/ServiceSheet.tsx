@@ -51,7 +51,7 @@ export function ServiceSheet() {
               className="w-full rounded-lg border border-line bg-bg px-2.5 py-2 text-sm text-ink outline-none focus:border-accent"
             />
           </Field>
-          <Field label="Odometer (km)">
+          <Field label="Odometer">
             <input
               type="text"
               inputMode="numeric"

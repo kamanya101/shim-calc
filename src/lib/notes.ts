@@ -44,4 +44,6 @@ export const HINTS = {
     "The nearest shim you can actually buy. Step it up or down if you want the clearance nearer one end of the band.",
   newClearance:
     "This is the clearance you get from the shim you chose. Is it within the tolerances given for this valve? If not go one size up or down to get there.",
+  confirmed:
+    "Once the new shim is in, measure the gap again and put the real figure here. It is often slightly over or under the predicted one — that is normal. Recording it gives the next service an honest starting point.",
 } as const;

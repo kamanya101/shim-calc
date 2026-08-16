@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const TABS = [
   { href: "/", label: "Sheet", icon: SheetIcon },
   { href: "/order", label: "Order", icon: CartIcon },
+  { href: "/summary", label: "Summary", icon: SummaryIcon },
   { href: "/history", label: "History", icon: ClockIcon },
   { href: "/notes", label: "Notes", icon: NoteIcon },
 ] as const;
@@ -69,6 +70,15 @@ function CartIcon() {
       <circle cx="9" cy="20" r="1.4" />
       <circle cx="18" cy="20" r="1.4" />
       <path d="M2 3h3l2.6 12.4a1.6 1.6 0 0 0 1.6 1.3h8.4a1.6 1.6 0 0 0 1.6-1.3L21 7H6" />
+    </svg>
+  );
+}
+
+function SummaryIcon() {
+  return (
+    <svg {...iconProps} aria-hidden="true">
+      <path d="M4 5h16M4 12h16M4 19h10" />
+      <path d="M17 17.5 18.6 19l2.9-3" />
     </svg>
   );
 }

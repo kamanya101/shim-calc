@@ -7,9 +7,12 @@
  * hundred kB of static files and all the data lives in localStorage.
  */
 
-const VERSION = "v1";
+// Bump on any change to the route list or caching strategy. Activation clears
+// every cache that isn't this one, which is also how stale asset entries from
+// previous deploys get swept.
+const VERSION = "v2";
 const CACHE = `shim-calc-${VERSION}`;
-const OFFLINE_URLS = ["/", "/order", "/history", "/notes"];
+const OFFLINE_URLS = ["/", "/order", "/summary", "/history", "/notes"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

@@ -62,7 +62,7 @@ export function TrendChart({
           x: record.odometer ?? index,
           clearance,
           label: record.odometer
-            ? `${record.odometer.toLocaleString()} km`
+            ? record.odometer.toLocaleString()
             : formatDate(record.date),
           inSpec: inSpec(range, clearance),
         });
@@ -277,7 +277,7 @@ function DataTable({
                 className="px-2.5 py-2 text-right font-semibold whitespace-nowrap"
               >
                 {record.odometer
-                  ? `${record.odometer.toLocaleString()} km`
+                  ? record.odometer.toLocaleString()
                   : formatDate(record.date)}
               </th>
             ))}

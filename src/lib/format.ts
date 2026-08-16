@@ -52,7 +52,12 @@ export function todayIso(): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-export function formatOdometer(km: number | undefined): string {
-  if (km === undefined) return "—";
-  return `${km.toLocaleString()} km`;
+/**
+ * Deliberately unitless. Plenty of these bikes are set up in miles, and the
+ * number only ever gets compared against other readings from the same bike,
+ * so stamping "km" on it would be wrong for some owners and useful to none.
+ */
+export function formatOdometer(reading: number | undefined): string {
+  if (reading === undefined) return "—";
+  return reading.toLocaleString();
 }

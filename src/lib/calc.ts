@@ -49,6 +49,14 @@ export type ValveResult = {
   noSuitableShim: boolean;
   /** Chosen shim is the one already fitted — nothing to buy. */
   noChange: boolean;
+  /** Gap actually measured after fitting, if it has been checked. */
+  confirmedClearance?: Microns;
+  confirmedInSpec?: boolean;
+  /**
+   * Measured minus predicted. Positive means it came out looser than the
+   * maths said it would.
+   */
+  confirmedDelta?: Microns;
 };
 
 /**
@@ -94,6 +102,7 @@ export function calculateValve(
   }
 
   const newClearance = stack - chosenShim;
+  const confirmedClearance = reading?.confirmedClearance;
 
   return {
     complete: true,
@@ -106,6 +115,11 @@ export function calculateValve(
     newInSpec: inSpec(range, newClearance),
     noSuitableShim: suggested === undefined,
     noChange: chosenShim === shim,
+    confirmedClearance,
+    confirmedInSpec:
+      confirmedClearance === undefined ? undefined : inSpec(range, confirmedClearance),
+    confirmedDelta:
+      confirmedClearance === undefined ? undefined : confirmedClearance - newClearance,
   };
 }
 

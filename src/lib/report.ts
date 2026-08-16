@@ -1,7 +1,14 @@
 import { calculateValve, DEFAULT_AIM, type Aim } from "./calc";
 import { partsForSize } from "./catalogues";
 import { mmFixed } from "./format";
-import type { EngineSpec, Microns, ServiceRecord, ValveType } from "./types";
+import type {
+  ClearanceRange,
+  EngineSpec,
+  Microns,
+  ServiceRecord,
+  ValvePosition,
+  ValveType,
+} from "./types";
 
 export type AimSettings = Record<ValveType, Aim>;
 
@@ -55,6 +62,58 @@ export function buildShoppingList(
   }
 
   return [...bySize.values()].sort((a, b) => a.um - b.um);
+}
+
+/**
+ * One valve's before-and-after, which is what a service record is really for:
+ * what was in there and what it measured, then what went in and what that
+ * actually measured once it was together.
+ */
+export type SummaryRow = {
+  position: ValvePosition;
+  range: ClearanceRange;
+  foundShim?: Microns;
+  foundClearance?: Microns;
+  foundInSpec?: boolean;
+  setShim?: Microns;
+  predictedClearance?: Microns;
+  confirmedClearance?: Microns;
+  confirmedInSpec?: boolean;
+  confirmedDelta?: Microns;
+  noChange: boolean;
+  complete: boolean;
+};
+
+export function buildSummary(
+  engine: EngineSpec,
+  record: ServiceRecord,
+  aim: AimSettings,
+): SummaryRow[] {
+  return engine.positions.map((position) => {
+    const range = engine.clearance[position.type];
+    const reading = record.readings[position.id];
+    const result = calculateValve(
+      reading,
+      range,
+      aim[position.type],
+      engine.catalogues,
+    );
+
+    return {
+      position,
+      range,
+      foundShim: reading?.shim,
+      foundClearance: reading?.clearance,
+      foundInSpec: result.measuredInSpec,
+      setShim: result.chosenShim,
+      predictedClearance: result.newClearance,
+      confirmedClearance: result.confirmedClearance,
+      confirmedInSpec: result.confirmedInSpec,
+      confirmedDelta: result.confirmedDelta,
+      noChange: result.noChange,
+      complete: result.complete,
+    };
+  });
 }
 
 export type SheetStatus = {
@@ -112,7 +171,7 @@ export function recordToCsv(
   const rows: (string | number | undefined)[][] = [
     ["Engine", engine.name + " " + engine.subtitle],
     ["Date", record.date],
-    ["Odometer (km)", record.odometer],
+    ["Odometer", record.odometer],
     ["Title", record.title],
     [],
     [
@@ -120,13 +179,16 @@ export function recordToCsv(
       "Type",
       "Spec min (mm)",
       "Spec max (mm)",
-      "Shim fitted (mm)",
-      "Clearance measured (mm)",
-      "In spec",
+      "Shim found (mm)",
+      "Gap found (mm)",
+      "Found in spec",
       "Ideal shim (mm)",
-      "Shim to fit (mm)",
-      "New clearance (mm)",
-      "New in spec",
+      "Shim set (mm)",
+      "Gap predicted (mm)",
+      "Predicted in spec",
+      "Gap confirmed (mm)",
+      "Confirmed in spec",
+      "Confirmed vs predicted (mm)",
       "Action",
       ...engine.catalogues.map((id) => `Part (${id})`),
     ],
@@ -158,6 +220,15 @@ export function recordToCsv(
       result.chosenShim !== undefined ? mmFixed(result.chosenShim) : "",
       result.newClearance !== undefined ? mmFixed(result.newClearance) : "",
       result.newInSpec === undefined ? "" : result.newInSpec ? "yes" : "NO",
+      result.confirmedClearance !== undefined
+        ? mmFixed(result.confirmedClearance)
+        : "",
+      result.confirmedInSpec === undefined
+        ? ""
+        : result.confirmedInSpec
+          ? "yes"
+          : "NO",
+      result.confirmedDelta !== undefined ? mmFixed(result.confirmedDelta) : "",
       !result.complete ? "not measured" : result.noChange ? "no change" : "fit new shim",
       ...engine.catalogues.map(
         (id) => parts.find((p) => p.brand === catalogueBrand(id))?.part ?? "",
@@ -193,6 +264,6 @@ export function suggestFilename(
   extension: string,
 ): string {
   const parts = ["shims", engine.name.toLowerCase().replace(/\s+/g, "-"), record.date];
-  if (record.odometer !== undefined) parts.push(`${record.odometer}km`);
+  if (record.odometer !== undefined) parts.push(String(record.odometer));
   return `${parts.join("-")}.${extension}`;
 }
