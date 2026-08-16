@@ -87,6 +87,7 @@ export function ServiceSheet() {
         <Chip tone={status.measured === status.total ? "ok" : "neutral"}>
           {status.measured}/{status.total} measured
         </Chip>
+        {status.good > 0 && <Chip tone="ok">{status.good} good</Chip>}
         {status.outOfSpec > 0 && (
           <Chip tone="bad">{status.outOfSpec} out of spec</Chip>
         )}

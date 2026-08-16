@@ -30,8 +30,21 @@ export function inSpec(range: ClearanceRange, clearance: Microns): boolean {
 }
 
 export type ValveResult = {
-  /** True once both measurements are present and the maths means anything. */
+  /** The gap has been measured. Enough on its own to pass or fail the valve. */
+  hasClearance: boolean;
+  /** The fitted shim has been measured — only needed once a change is on. */
+  hasShim: boolean;
+  /** Both present, so a replacement shim can be worked out. */
   complete: boolean;
+  /** The clearance being aimed for, given the tight/middle/loose preference. */
+  target?: Microns;
+  /**
+   * How far outside tolerance, signed: negative is too tight, positive too
+   * loose. Undefined when the valve is in spec.
+   */
+  outOfSpecBy?: Microns;
+  /** Measured minus target. Positive means looser than you like to run it. */
+  targetDelta?: Microns;
   /** shim + clearance. Fixed for the valve, whatever shim you fit. */
   stack?: Microns;
   /** Was the clearance we measured actually within spec? */
@@ -65,6 +78,11 @@ export type ValveResult = {
  *   stack        = shim + measured clearance   (the space the cam leaves)
  *   ideal shim   = stack - target clearance
  *   new clearance = stack - fitted shim
+ *
+ * Evaluated in the order the job is actually done. The gap gets measured with
+ * the engine still together, and most of the time it is fine and nothing else
+ * needs doing — so the verdict is returned from the clearance alone, and the
+ * shim only matters once the valve has failed and the shim is coming out.
  */
 export function calculateValve(
   reading: ValveReading | undefined,
@@ -74,13 +92,40 @@ export function calculateValve(
 ): ValveResult {
   const shim = reading?.shim;
   const clearance = reading?.clearance;
+  const target = targetClearance(range, aim);
 
-  if (shim === undefined || clearance === undefined) {
-    return { complete: false, overridden: false, noSuitableShim: false, noChange: false };
-  }
+  const hasClearance = clearance !== undefined;
+  const hasShim = shim !== undefined;
+
+  const base: ValveResult = {
+    hasClearance,
+    hasShim,
+    complete: hasClearance && hasShim,
+    target,
+    overridden: false,
+    noSuitableShim: false,
+    noChange: false,
+  };
+
+  if (clearance === undefined) return base;
+
+  const measuredInSpec = inSpec(range, clearance);
+  const verdict: ValveResult = {
+    ...base,
+    measuredInSpec,
+    targetDelta: clearance - target,
+    outOfSpecBy: measuredInSpec
+      ? undefined
+      : clearance < range.min
+        ? clearance - range.min
+        : clearance - range.max,
+  };
+
+  // In spec or not, without the fitted shim there is nothing further to work
+  // out — and if the valve passed, there is nothing further worth working out.
+  if (shim === undefined) return verdict;
 
   const stack = shim + clearance;
-  const target = targetClearance(range, aim);
   const idealShim = stack - target;
 
   const sizes = availableSizes(catalogueIds);
@@ -91,13 +136,11 @@ export function calculateValve(
 
   if (chosenShim === undefined) {
     return {
+      ...verdict,
       complete: true,
       stack,
-      measuredInSpec: inSpec(range, clearance),
       idealShim,
-      overridden: false,
       noSuitableShim: true,
-      noChange: false,
     };
   }
 
@@ -105,9 +148,9 @@ export function calculateValve(
   const confirmedClearance = reading?.confirmedClearance;
 
   return {
+    ...verdict,
     complete: true,
     stack,
-    measuredInSpec: inSpec(range, clearance),
     idealShim,
     chosenShim,
     overridden,

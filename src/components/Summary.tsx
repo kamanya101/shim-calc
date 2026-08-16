@@ -16,7 +16,7 @@ export function Summary() {
   if (!ready) return <p className="p-4 text-sm text-faint">Loading…</p>;
 
   const rows = buildSummary(engine, active, aim);
-  const anyFound = rows.some((r) => r.complete);
+  const anyFound = rows.some((r) => r.measured);
   const anyConfirmed = rows.some((r) => r.confirmedClearance !== undefined);
   const drifted = rows.filter(
     (r) => r.confirmedDelta !== undefined && r.confirmedDelta !== 0,
@@ -76,28 +76,35 @@ export function Summary() {
                 key: row.position.id,
                 cells: [
                   row.position.label,
-                  mm(row.setShim) + (row.noChange ? " ↺" : ""),
-                  row.confirmedClearance !== undefined
-                    ? mm(row.confirmedClearance)
-                    : row.predictedClearance !== undefined
-                      ? `(${mm(row.predictedClearance)})`
-                      : "—",
+                  row.leftAlone
+                    ? "—"
+                    : mm(row.setShim) + (row.noChange ? " ↺" : ""),
+                  row.leftAlone
+                    ? mm(row.foundClearance)
+                    : row.confirmedClearance !== undefined
+                      ? mm(row.confirmedClearance)
+                      : row.predictedClearance !== undefined
+                        ? `(${mm(row.predictedClearance)})`
+                        : "—",
                 ],
-                chip:
-                  row.confirmedClearance !== undefined ? (
-                    row.confirmedInSpec ? (
-                      <Chip tone="ok">confirmed</Chip>
-                    ) : (
-                      <Chip tone="bad">out of spec</Chip>
-                    )
-                  ) : row.predictedClearance !== undefined ? (
-                    <Chip tone="neutral">predicted</Chip>
-                  ) : null,
+                chip: row.leftAlone ? (
+                  <Chip tone="ok">left alone</Chip>
+                ) : row.confirmedClearance !== undefined ? (
+                  row.confirmedInSpec ? (
+                    <Chip tone="ok">confirmed</Chip>
+                  ) : (
+                    <Chip tone="bad">out of spec</Chip>
+                  )
+                ) : row.predictedClearance !== undefined ? (
+                  <Chip tone="neutral">predicted</Chip>
+                ) : null,
               }))}
             />
             <p className="mt-2 text-[11px] text-faint">
-              ↺ means the shim already in the engine was the right one — nothing
-              was changed. Figures in brackets are predicted, not measured.
+              &ldquo;Left alone&rdquo; means the gap was in tolerance and the
+              shim was never disturbed, so the gap shown is the one it was
+              already running. ↺ means the shim came out but the same size went
+              back in. Figures in brackets are predicted, not measured.
             </p>
           </Section>
 

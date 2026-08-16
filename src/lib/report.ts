@@ -43,9 +43,7 @@ export function buildShoppingList(
       aim[position.type],
       engine.catalogues,
     );
-    if (!result.complete || result.chosenShim === undefined || result.noChange) {
-      continue;
-    }
+    if (result.chosenShim === undefined || result.noChange) continue;
 
     const existing = bySize.get(result.chosenShim);
     if (existing) {
@@ -81,7 +79,10 @@ export type SummaryRow = {
   confirmedInSpec?: boolean;
   confirmedDelta?: Microns;
   noChange: boolean;
-  complete: boolean;
+  /** The gap was measured. */
+  measured: boolean;
+  /** Measured, in spec, and no shim was touched. */
+  leftAlone: boolean;
 };
 
 export function buildSummary(
@@ -111,15 +112,23 @@ export function buildSummary(
       confirmedInSpec: result.confirmedInSpec,
       confirmedDelta: result.confirmedDelta,
       noChange: result.noChange,
-      complete: result.complete,
+      measured: result.hasClearance,
+      leftAlone:
+        result.hasClearance &&
+        result.measuredInSpec === true &&
+        result.chosenShim === undefined,
     };
   });
 }
 
 export type SheetStatus = {
+  /** Valves whose gap has been measured — the only step most valves need. */
   measured: number;
   total: number;
+  /** Measured and in tolerance. Nothing to do. */
+  good: number;
   outOfSpec: number;
+  /** Valves with a replacement shim worked out. */
   needShims: number;
   problems: number;
 };
@@ -130,6 +139,7 @@ export function sheetStatus(
   aim: AimSettings,
 ): SheetStatus {
   let measured = 0;
+  let good = 0;
   let outOfSpec = 0;
   let needShims = 0;
   let problems = 0;
@@ -141,9 +151,10 @@ export function sheetStatus(
       aim[position.type],
       engine.catalogues,
     );
-    if (!result.complete) continue;
+    if (!result.hasClearance) continue;
     measured += 1;
-    if (result.measuredInSpec === false) outOfSpec += 1;
+    if (result.measuredInSpec) good += 1;
+    else outOfSpec += 1;
     if (!result.noChange && result.chosenShim !== undefined) needShims += 1;
     if (result.noSuitableShim || result.newInSpec === false) problems += 1;
   }
@@ -151,6 +162,7 @@ export function sheetStatus(
   return {
     measured,
     total: engine.positions.length,
+    good,
     outOfSpec,
     needShims,
     problems,
@@ -229,7 +241,13 @@ export function recordToCsv(
           ? "yes"
           : "NO",
       result.confirmedDelta !== undefined ? mmFixed(result.confirmedDelta) : "",
-      !result.complete ? "not measured" : result.noChange ? "no change" : "fit new shim",
+      !result.hasClearance
+        ? "not measured"
+        : result.measuredInSpec && result.chosenShim === undefined
+          ? "left alone"
+          : result.noChange
+            ? "same shim back in"
+            : "fit new shim",
       ...engine.catalogues.map(
         (id) => parts.find((p) => p.brand === catalogueBrand(id))?.part ?? "",
       ),
