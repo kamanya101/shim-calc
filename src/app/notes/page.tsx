@@ -5,6 +5,38 @@ import { AUTHOR, NOTES } from "@/lib/notes";
 
 export const metadata = { title: "Notes — Shim Calculator" };
 
+/**
+ * Written in the order the job is done, not the order the maths runs. Most
+ * services never get past step 2 on most valves, and the wording should make
+ * that obvious rather than implying eight shim changes are coming.
+ */
+const STEPS = [
+  {
+    heading: "Measure every gap first",
+    body: "Work round the valves with a feeler gauge and enter each gap on the Sheet. Nothing needs taking apart yet. The layout mimics the engine — front cylinder above, rear below, intakes and exhausts where they actually sit — so take care not to put an intake reading in an exhaust box.",
+  },
+  {
+    heading: "Anything in tolerance is finished",
+    body: "A gap inside spec turns green and says how far it sits from your preferred setting. Leave that valve alone. On a healthy engine most valves stop here, which is the whole hope of the exercise.",
+  },
+  {
+    heading: "Only pull a shim the app has failed",
+    body: "If a gap is out of tolerance it says which way and by how much, and asks for the shim. Take that one out from under the bucket, measure it, and enter it. You get the size to fit and the KTM and Harley-Davidson part numbers. The − and + buttons step through real sizes if you would rather sit nearer one end of the band.",
+  },
+  {
+    heading: "Order what you need",
+    body: "The Order tab adds up the shims by size with quantities, and leaves out the valves that did not need touching, so you are not ordering a shim you already have.",
+  },
+  {
+    heading: "Fit them, then measure again",
+    body: "Once the new shims are in, check each gap and put the real figure in Confirmed gap. It is often slightly over or under the predicted one — that is normal — and recording it means the next service starts from what the engine actually did.",
+  },
+  {
+    heading: "Keep the record",
+    body: "Summary shows what you found and what you set at that odometer reading, ready to print or export. History keeps every service and charts how each valve is drifting, which is the thing a paper record could never show you.",
+  },
+];
+
 export default function Page() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-5">
@@ -15,28 +47,30 @@ export default function Page() {
 
       <section className="mt-5">
         <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-accent">
-          How it works
+          How to use this
         </h2>
-        <div className="space-y-2.5 text-sm leading-relaxed text-muted">
-          <p>
-            Measure the shim that came out and the gap you could fit a feeler
-            gauge into. Add them together and you get the space the cam leaves
-            above the valve — that number doesn&apos;t change when you swap
-            shims, which is what makes the whole thing work.
-          </p>
-          <pre className="overflow-x-auto rounded-lg border border-line bg-surface p-3 font-mono text-xs text-ink">
-{`stack          = shim fitted + clearance measured
-new clearance  = stack − new shim
-ideal shim     = stack − clearance you want`}
-          </pre>
-          <p>
-            A thicker shim gives a smaller gap. The calculator finds the nearest
-            shim anyone actually sells that lands you inside tolerance, and the{" "}
-            <strong className="text-ink">−</strong> and{" "}
-            <strong className="text-ink">+</strong> buttons step through the real
-            sizes if you want to sit nearer one end of the band.
-          </p>
-        </div>
+        <ol className="space-y-3">
+          {STEPS.map((step, index) => (
+            <li key={step.heading} className="flex gap-3">
+              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent/15 text-[11px] font-bold text-accent">
+                {index + 1}
+              </span>
+              <div>
+                <h3 className="text-sm font-semibold">{step.heading}</h3>
+                <p className="mt-0.5 text-sm leading-relaxed text-muted">
+                  {step.body}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ol>
+        <p className="mt-3 rounded-lg border border-line bg-surface p-3 text-sm leading-relaxed text-muted">
+          <strong className="text-ink">Tight / Middle / Loose</strong> on the
+          Sheet sets where in the tolerance band the app aims when it suggests a
+          shim. It never fails a valve that is within spec — it only tells you
+          how far the gap sits from where you like to run it. Note 3 below
+          explains why intakes and exhausts want opposite ends.
+        </p>
       </section>
 
       <section className="mt-6">
@@ -51,11 +85,35 @@ ideal shim     = stack − clearance you want`}
               </dt>
               <dd className="mt-0.5 font-mono text-lg font-bold tabular-nums">
                 {mm(KTM_LC8.clearance[type].min)} – {mm(KTM_LC8.clearance[type].max)}
-                <span className="ml-1 text-xs font-medium text-faint">mm</span>
+                {/* Explicit space, not just a margin — otherwise this copies
+                    and reads aloud as "0.15mm". */}
+                <> <span className="text-xs font-medium text-faint">mm</span></>
               </dd>
             </div>
           ))}
         </dl>
+      </section>
+
+      <section className="mt-6">
+        <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-accent">
+          The maths behind it
+        </h2>
+        <div className="space-y-2.5 text-sm leading-relaxed text-muted">
+          <p>
+            Add the shim that came out to the gap you measured and you get the
+            space the cam leaves above the valve. That number does not change
+            when you swap shims, which is what makes the whole thing work.
+          </p>
+          <pre className="overflow-x-auto rounded-lg border border-line bg-surface p-3 font-mono text-xs text-ink">
+{`stack      = shim fitted + gap measured
+new gap    = stack − new shim
+ideal shim = stack − the gap you want`}
+          </pre>
+          <p>
+            A thicker shim gives a smaller gap. Nothing else to it — check it
+            yourself on any valve you like.
+          </p>
+        </div>
       </section>
 
       <section className="mt-6">
