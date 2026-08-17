@@ -1,4 +1,4 @@
-import type { Microns } from "./types";
+import type { DistanceUnit, Microns } from "./types";
 
 /** 2350 -> "2.35". Trailing zeros beyond two decimals are dropped. */
 export function mm(um: Microns | undefined, decimals = 3): string {
@@ -65,11 +65,41 @@ export function timeAgo(iso: string | null): string {
 }
 
 /**
- * Deliberately unitless. Plenty of these bikes are set up in miles, and the
- * number only ever gets compared against other readings from the same bike,
- * so stamping "km" on it would be wrong for some owners and useful to none.
+ * Odometers, and the one conversion in the app.
+ *
+ * A reading was unitless until the shared pool started comparing bikes against
+ * each other, at which point it had to stop being: 60,000 miles and 60,000
+ * kilometres are the same number and sixty per cent apart, and mixing them
+ * would not fail, it would just quietly produce wrong averages forever.
+ *
+ * So the pool stores kilometres and nothing else, and these two functions are
+ * the only places a reading changes unit. A rider's own history is never put
+ * through them — it stays exactly as typed, in the bike's own unit — so the
+ * rounding here can only ever affect a number on its way to or from the pool.
  */
-export function formatOdometer(reading: number | undefined): string {
+const KM_PER_MILE = 1.609344;
+
+export function toKm(reading: number, units: DistanceUnit): number {
+  return units === "mi" ? Math.round(reading * KM_PER_MILE) : reading;
+}
+
+export function fromKm(km: number, units: DistanceUnit): number {
+  return units === "mi" ? Math.round(km / KM_PER_MILE) : km;
+}
+
+export function unitLabel(units: DistanceUnit | undefined): string {
+  return units === "mi" ? "mi" : "km";
+}
+
+/**
+ * Takes the unit rather than assuming one. It is required, not optional, so
+ * that adding a place a mileage is printed cannot silently print a bare number
+ * again.
+ */
+export function formatOdometer(
+  reading: number | undefined,
+  units: DistanceUnit | undefined,
+): string {
   if (reading === undefined) return "—";
-  return reading.toLocaleString();
+  return `${reading.toLocaleString()} ${unitLabel(units)}`;
 }

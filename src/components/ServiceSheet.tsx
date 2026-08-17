@@ -4,10 +4,10 @@ import Link from "next/link";
 import { APP_NAME } from "@/lib/app";
 import type { Aim } from "@/lib/calc";
 import { groupsByBank } from "@/lib/engines";
-import { mm, todayIso } from "@/lib/format";
+import { mm, todayIso, unitLabel } from "@/lib/format";
 import { BIKE_MODEL_GROUPS, MODEL_YEARS, modelLabel } from "@/lib/models";
 import { sheetStatus } from "@/lib/report";
-import type { ValveType } from "@/lib/types";
+import type { DistanceUnit, ValveType } from "@/lib/types";
 import { useRecords } from "./RecordsProvider";
 import { ValveCard } from "./ValveCard";
 import { Button, Card, Chip, PageHeader, Segmented } from "./ui";
@@ -67,7 +67,10 @@ export function ServiceSheet() {
           most, since there is barely 250px of usable height once the browser
           chrome and the tab bar have taken their share.
         */}
-        <div className="grid gap-2.5 sm:grid-cols-4">
+        {/* Units is sized to its content rather than taking a fifth equal
+            column, so Bike / Name / Model / Year keep the widths they were
+            given when they were fitted onto one row. */}
+        <div className="grid gap-2.5 sm:grid-cols-[repeat(4,minmax(0,1fr))_auto]">
           <Field label="Bike">
             <div className="flex items-stretch gap-1.5">
               <select
@@ -144,6 +147,30 @@ export function ServiceSheet() {
               ))}
             </select>
           </Field>
+
+          {/*
+            Set on the bike, not on the rider: an imported machine reading in
+            miles can sit happily beside a local one in kilometres, and the
+            unit is a fact about the motorcycle.
+
+            It matters beyond the label. The shared pool stores kilometres and
+            only kilometres, because 60,000 miles and 60,000 km are the same
+            number and sixty per cent apart — mixing them would not fail, it
+            would quietly produce wrong averages forever. This is what tells
+            the pool which one it is being handed.
+          */}
+          <Field label="Units">
+            <select
+              value={bike.units ?? "km"}
+              onChange={(e) =>
+                updateBike({ units: e.target.value as DistanceUnit })
+              }
+              className="w-full rounded-lg border border-line bg-bg px-2.5 py-2 text-sm text-ink outline-none focus:border-accent"
+            >
+              <option value="km">km</option>
+              <option value="mi">mi</option>
+            </select>
+          </Field>
         </div>
 
         {/* Out of the label so the three columns sit level; prefixed so it is
@@ -184,7 +211,7 @@ export function ServiceSheet() {
               className="w-full rounded-lg border border-line bg-bg px-2.5 py-2 text-sm text-ink outline-none focus:border-accent"
             />
           </Field>
-          <Field label="Odometer">
+          <Field label={`Odometer (${unitLabel(bike.units)})`}>
             <input
               type="text"
               inputMode="numeric"

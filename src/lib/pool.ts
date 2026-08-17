@@ -1,6 +1,7 @@
 "use client";
 
 import { getEngine } from "./engines";
+import { toKm } from "./format";
 import type { Bike, ServiceRecord } from "./types";
 
 /**
@@ -50,6 +51,7 @@ export type PooledReading = {
   valve_type: string;
   /** "2026-08". Deliberately not the day. */
   month: string | null;
+  /** Always kilometres, whatever the bike's own odometer reads in. */
   odometer: number | null;
   /** The shim that was in there, where it was measured. */
   shim: number | null;
@@ -161,7 +163,12 @@ export async function buildContribution(
         position_id: position.id,
         valve_type: position.type,
         month: month(record.date),
-        odometer: record.odometer ?? null,
+        // Converted here and nowhere else. The pool is one unit or it is
+        // nonsense; the rider's own copy stays exactly as they typed it.
+        odometer:
+          record.odometer === undefined
+            ? null
+            : toKm(record.odometer, bike?.units ?? "km"),
         shim: reading.shim ?? null,
         clearance: reading.clearance,
         chosen_shim: reading.chosenShim ?? null,

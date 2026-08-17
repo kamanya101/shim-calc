@@ -42,6 +42,7 @@ type BikeRow = {
   name: string;
   model_id: string | null;
   year: number | null;
+  units: string | null;
   engine_id: string;
   created_at: string;
   updated_at: string;
@@ -67,6 +68,9 @@ const toBike = (row: BikeRow): Bike => ({
   name: row.name,
   modelId: row.model_id ?? undefined,
   year: row.year ?? undefined,
+  // Anything the server does not recognise is treated as unset rather than
+  // carried through, so a bad value cannot reach the pool as a unit.
+  units: row.units === "mi" || row.units === "km" ? row.units : undefined,
   engineId: row.engine_id,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
@@ -79,6 +83,7 @@ const toBikeRow = (bike: Bike, userId: string): BikeRow => ({
   name: bike.name,
   model_id: bike.modelId ?? null,
   year: bike.year ?? null,
+  units: bike.units ?? null,
   engine_id: bike.engineId,
   created_at: bike.createdAt,
   updated_at: bike.updatedAt,

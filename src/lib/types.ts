@@ -85,6 +85,9 @@ export type ValveReading = {
  * or a registration would be a chore to type and would put personal data into
  * a record that has no business holding any.
  */
+/** What an odometer counts in. */
+export type DistanceUnit = "km" | "mi";
+
 export type Bike = {
   id: string;
   /** "Orange one", "The Dakar". Defaults to the model. */
@@ -100,6 +103,19 @@ export type Bike = {
    * date would be a poor trade.
    */
   year?: number;
+  /**
+   * Which unit this bike's odometer is read in.
+   *
+   * Set per bike rather than per rider: someone can easily keep an imported
+   * machine reading in miles alongside a local one in kilometres, and the
+   * number on the clock is a fact about the motorcycle.
+   *
+   * Readings are stored exactly as they were typed, in this unit, so a rider's
+   * own history never drifts through a conversion. Only the shared pool is
+   * converted, and only at its edge — see pool.ts. Absent means kilometres,
+   * which is what every reading saved before this existed was.
+   */
+  units?: DistanceUnit;
   engineId: string;
   createdAt: string;
   /** Bumped on every edit. Two devices reconcile by keeping the later one. */

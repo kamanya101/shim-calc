@@ -26,7 +26,7 @@ export function OrderList() {
             ? `${bike.name} · ${modelLabel(bike.modelId, bike.year)}`
             : bike.name,
           formatDate(active.date),
-          formatOdometer(active.odometer),
+          formatOdometer(active.odometer, bike.units),
         ]
           .filter(Boolean)
           .join(" · ")}

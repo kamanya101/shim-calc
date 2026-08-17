@@ -43,6 +43,12 @@ create table if not exists public.bikes (
 -- them up. No-ops once they are there.
 alter table public.bikes add column if not exists model_id text;
 alter table public.bikes add column if not exists year integer;
+-- "km" or "mi". Null means kilometres, which is what every bike saved before
+-- the choice existed was reading in. It has to live here and not only on the
+-- device: without it a sync pulls back a bike with no unit and silently
+-- resets the rider's choice, and the pool is then handed miles labelled as
+-- kilometres.
+alter table public.bikes add column if not exists units text;
 
 -- Carry the old printed names over to ids before the old column goes, or the
 -- upgrade would quietly throw away which bike each row was. The old names map
@@ -224,6 +230,10 @@ create table if not exists public.pooled_readings (
   -- would make a reading easy to match against somebody describing the
   -- service they did that afternoon.
   month               text,
+  -- Kilometres, always, whatever the contributing bike's clock reads in. The
+  -- app converts on the way in; see toKm in src/lib/format.ts. A pool that
+  -- accepted both units would not fail, it would quietly average 60,000 miles
+  -- together with 60,000 km as though they were the same distance.
   odometer            integer,
   shim                integer,
   clearance           integer not null,
@@ -403,10 +413,21 @@ grant execute on function public.contribute_readings(jsonb, text[]) to authentic
 -- one model, one year — are exactly how you would go looking for it. Below the
 -- threshold the counts still come back, so the page can say how many more are
 -- needed rather than looking broken, but the shape does not.
+-- The shape this had before the mileage window was added. Postgres treats a
+-- changed argument list as a different function rather than a replacement, so
+-- without this both would exist, and a call naming only the first three would
+-- be ambiguous rather than picking the newer one.
+drop function if exists public.pool_shim_distribution(text[], integer[], boolean);
+
 create or replace function public.pool_shim_distribution(
   model_ids   text[]    default null,
   years       integer[] default null,
-  latest_only boolean   default false
+  latest_only boolean   default false,
+  -- Kilometres, like everything else stored here. A rider reading in miles has
+  -- their window converted by the app before it is asked for, so this stays a
+  -- plain comparison and never has to know what unit anybody prefers.
+  odo_min_km  integer   default null,
+  odo_max_km  integer   default null
 )
 returns jsonb
 language plpgsql
@@ -432,6 +453,13 @@ begin
      where r.shim is not null
        and (model_ids is null or r.model_id = any(model_ids))
        and (years     is null or r.year     = any(years))
+       -- A reading with no odometer is dropped once a window is asked for,
+       -- rather than assumed to fall inside it. "I don't know where this one
+       -- sits" is not the same claim as "it sits in your range".
+       and (odo_min_km is null
+            or (r.odometer is not null and r.odometer >= odo_min_km))
+       and (odo_max_km is null
+            or (r.odometer is not null and r.odometer <= odo_max_km))
   ),
   ranked as (
     select f.*,
@@ -497,7 +525,9 @@ begin
 end;
 $$;
 
-revoke all on function public.pool_shim_distribution(text[], integer[], boolean)
+revoke all on function
+  public.pool_shim_distribution(text[], integer[], boolean, integer, integer)
   from public, anon;
-grant execute on function public.pool_shim_distribution(text[], integer[], boolean)
+grant execute on function
+  public.pool_shim_distribution(text[], integer[], boolean, integer, integer)
   to authenticated;

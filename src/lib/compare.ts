@@ -1,5 +1,6 @@
 "use client";
 
+import { toKm } from "./format";
 import { BIKE_MODELS } from "./models";
 import { getSupabase } from "./supabase";
 import type { Bike, Microns, ServiceRecord, ValvePosition, ValveType } from "./types";
@@ -115,14 +116,35 @@ export function scopeOptions(
   ];
 }
 
+/**
+ * A mileage window, in the bike's own unit — which is what the rider typed and
+ * what they will read back. It is converted to kilometres on its way to the
+ * pool and never stored in any other form.
+ */
+export type OdoWindow = { min?: number; max?: number };
+
 type Filter = {
   model_ids: string[] | null;
   years: number[] | null;
   latest_only: boolean;
+  odo_min_km: number | null;
+  odo_max_km: number | null;
 };
 
-function buildFilter(scope: PoolScope, bike: Bike, latestOnly: boolean): Filter {
-  const base: Filter = { model_ids: null, years: null, latest_only: latestOnly };
+function buildFilter(
+  scope: PoolScope,
+  bike: Bike,
+  latestOnly: boolean,
+  window: OdoWindow,
+): Filter {
+  const units = bike.units ?? "km";
+  const base: Filter = {
+    model_ids: null,
+    years: null,
+    latest_only: latestOnly,
+    odo_min_km: window.min === undefined ? null : toKm(window.min, units),
+    odo_max_km: window.max === undefined ? null : toKm(window.max, units),
+  };
 
   switch (scope) {
     case "model":
@@ -148,6 +170,7 @@ export async function fetchPoolDistribution(
   scope: PoolScope,
   bike: Bike,
   latestOnly: boolean,
+  window: OdoWindow,
 ): Promise<PoolResult> {
   const supabase = getSupabase();
   if (!supabase) return { state: "no-backend" };
@@ -157,7 +180,7 @@ export async function fetchPoolDistribution(
 
   const { data, error } = await supabase.rpc(
     "pool_shim_distribution",
-    buildFilter(scope, bike, latestOnly),
+    buildFilter(scope, bike, latestOnly, window),
   );
 
   if (error) return { state: "error", message: error.message };

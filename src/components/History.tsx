@@ -89,7 +89,7 @@ export function History() {
                 >
                   <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
                     <span className="font-semibold">
-                      {formatOdometer(record.odometer)}
+                      {formatOdometer(record.odometer, bike.units)}
                     </span>
                     <span className="text-xs text-faint">
                       {formatDate(record.date)}
@@ -128,7 +128,7 @@ export function History() {
                     onClick={() => {
                       if (
                         confirm(
-                          `Delete the service at ${formatOdometer(record.odometer)}? This can't be undone.`,
+                          `Delete the service at ${formatOdometer(record.odometer, bike.units)}? This can't be undone.`,
                         )
                       ) {
                         remove(record.id);

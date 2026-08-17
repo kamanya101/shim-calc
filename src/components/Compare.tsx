@@ -7,11 +7,12 @@ import {
   riderShims,
   scopeOptions,
   type CompareMode,
+  type OdoWindow,
   type PoolResult,
   type PoolScope,
   type PoolSide,
 } from "@/lib/compare";
-import { mm } from "@/lib/format";
+import { mm, unitLabel } from "@/lib/format";
 import type { EngineSpec, Microns, ServiceRecord, ValveType } from "@/lib/types";
 import { BikeTabs } from "./BikeTabs";
 import { useRecords } from "./RecordsProvider";
@@ -46,6 +47,8 @@ export function Compare() {
   const [loaded, setLoaded] = useState<{ key: string; result: PoolResult } | null>(
     null,
   );
+  // Named for what it is rather than `window`, which would shadow the global.
+  const [odoWindow, setOdoWindow] = useState<OdoWindow>({});
 
   const spec = MODES[mode];
   const scopes = useMemo(() => scopeOptions(bike), [bike]);
@@ -64,20 +67,27 @@ export function Compare() {
   // What the panels below would have to be showing to be up to date. Comparing
   // it against what actually arrived is what makes "loading" a derived fact
   // rather than a flag that has to be set and unset correctly at both ends.
-  const requestKey = `${bike.id}:${activeScope}:${spec.latestOnly}`;
+  const requestKey = `${bike.id}:${activeScope}:${spec.latestOnly}:${odoWindow.min ?? ""}:${odoWindow.max ?? ""}`;
 
   useEffect(() => {
     if (!ready) return;
     let cancelled = false;
 
-    fetchPoolDistribution(activeScope, bike, spec.latestOnly).then((next) => {
-      if (!cancelled) setLoaded({ key: requestKey, result: next });
-    });
+    // Typing "100000" into a mileage box is six keystrokes and would otherwise
+    // be six round trips, five of them for windows the rider never meant.
+    const timer = setTimeout(() => {
+      fetchPoolDistribution(activeScope, bike, spec.latestOnly, odoWindow).then(
+        (next) => {
+          if (!cancelled) setLoaded({ key: requestKey, result: next });
+        },
+      );
+    }, 300);
 
     return () => {
       cancelled = true;
+      clearTimeout(timer);
     };
-  }, [ready, bike, activeScope, spec.latestOnly, requestKey]);
+  }, [ready, bike, activeScope, spec.latestOnly, odoWindow, requestKey]);
 
   const result = loaded?.result ?? null;
   const loading = ready && loaded?.key !== requestKey;
@@ -128,6 +138,43 @@ export function Compare() {
         ))}
       </div>
 
+      {/*
+        The pool holds kilometres and only kilometres. These two boxes are read
+        and written in this bike's own unit, converted on the way to the query
+        and never stored converted, so a rider in miles types miles, reads
+        miles, and still lands on the same readings as everybody else.
+      */}
+      <h2 className="mb-2 text-sm font-bold">
+        Mileage window ({unitLabel(bike.units)})
+      </h2>
+      <div className="mb-1 flex flex-wrap items-center gap-2">
+        <OdoInput
+          label="From"
+          value={odoWindow.min}
+          onChange={(min) => setOdoWindow((w) => ({ ...w, min }))}
+        />
+        <OdoInput
+          label="To"
+          value={odoWindow.max}
+          onChange={(max) => setOdoWindow((w) => ({ ...w, max }))}
+        />
+        {(odoWindow.min !== undefined || odoWindow.max !== undefined) && (
+          <button
+            type="button"
+            onClick={() => setOdoWindow({})}
+            className="text-[11px] font-semibold text-accent underline underline-offset-2"
+          >
+            any mileage
+          </button>
+        )}
+      </div>
+      <p className="mb-4 text-xs leading-relaxed text-faint">
+        Leave both blank to compare against every mileage. Narrowing to
+        something near your own reading is the fairest comparison — a fresh
+        engine and a worn one are not running the same shims, and neither is
+        wrong. Readings with no odometer recorded drop out once a window is set.
+      </p>
+
       <Panels
         engine={engine}
         records={records}
@@ -150,6 +197,33 @@ export function Compare() {
         fast you are wearing — History is where the wear rate lives.
       </p>
     </div>
+  );
+}
+
+function OdoInput({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value?: number;
+  onChange: (value: number | undefined) => void;
+}) {
+  return (
+    <label className="flex items-center gap-1.5 text-[11px] font-semibold text-faint">
+      {label}
+      <input
+        type="text"
+        inputMode="numeric"
+        placeholder="any"
+        value={value ?? ""}
+        onChange={(e) => {
+          const digits = e.target.value.replace(/[^\d]/g, "");
+          onChange(digits === "" ? undefined : Number(digits));
+        }}
+        className="w-24 rounded-lg border border-line bg-bg px-2 py-1.5 font-mono text-sm tabular-nums text-ink outline-none placeholder:text-faint/50 focus:border-accent"
+      />
+    </label>
   );
 }
 

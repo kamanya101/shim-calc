@@ -32,7 +32,9 @@ export function Summary() {
             ? `${bike.name} · ${modelLabel(bike.modelId, bike.year)}`
             : bike.name,
           formatDate(active.date),
-          active.odometer !== undefined ? formatOdometer(active.odometer) : null,
+          active.odometer !== undefined
+            ? formatOdometer(active.odometer, bike.units)
+            : null,
           active.title,
         ]
           .filter(Boolean)
