@@ -385,3 +385,119 @@ $$;
 -- wanted here.
 revoke all on function public.contribute_readings(jsonb, text[]) from public, anon;
 grant execute on function public.contribute_readings(jsonb, text[]) to authenticated;
+
+
+-- The only way out.
+--
+-- The Compare page needs to read the pool, and the table above is sealed: no
+-- grants, RLS on with no policy behind it. So reading goes through here, on the
+-- same terms writing does — owner rights, contributors only, and nothing the
+-- caller sends is a filter over rows they get to see one at a time.
+--
+-- What comes back is only ever a shape: counts per size band, and the min, max
+-- and mean. Never a row. A caller cannot ask "show me the readings", only "how
+-- are they spread", which is the entire question the page asks anyway.
+--
+-- `min_bikes` is the reason this can be said out loud. A spread built from one
+-- motorcycle is that motorcycle's data wearing a costume, and narrow filters —
+-- one model, one year — are exactly how you would go looking for it. Below the
+-- threshold the counts still come back, so the page can say how many more are
+-- needed rather than looking broken, but the shape does not.
+create or replace function public.pool_shim_distribution(
+  model_ids   text[]    default null,
+  years       integer[] default null,
+  latest_only boolean   default false
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  -- Deliberately low. It is the difference between "several bikes" and "a
+  -- bike", not a statistical claim; the page prints the sample size next to
+  -- every figure so the reader can judge the rest for themselves.
+  min_bikes constant integer := 3;
+  result jsonb;
+begin
+  if not exists (select 1 from public.contributors where user_id = auth.uid()) then
+    raise exception 'no contributor record for this account';
+  end if;
+
+  with filtered as (
+    select r.*
+      from public.pooled_readings r
+     -- Thickness is the whole subject. A valve that passed and was never
+     -- pulled has no shim recorded and nothing to place on the scale.
+     where r.shim is not null
+       and (model_ids is null or r.model_id = any(model_ids))
+       and (years     is null or r.year     = any(years))
+  ),
+  ranked as (
+    select f.*,
+           row_number() over (
+             partition by f.bike_key, f.position_id
+             order by f.odometer desc nulls last,
+                      f.month    desc nulls last,
+                      f.updated_at desc
+           ) as rn
+      from filtered f
+  ),
+  -- Either every reading ever pooled, or just what is in each bike now — one
+  -- per valve per bike, the furthest along its odometer. Without the second,
+  -- "what are people running" would count a rider who services often far more
+  -- times than one who does not.
+  chosen as (
+    select * from ranked where not latest_only or rn = 1
+  ),
+  stats as (
+    select valve_type,
+           count(*)::int                as readings,
+           count(distinct bike_key)::int as bikes,
+           min(shim)::int               as min_um,
+           max(shim)::int               as max_um,
+           round(avg(shim))::int        as avg_um
+      from chosen
+     group by valve_type
+  ),
+  -- 25 microns: the real step between one shim and the next. Binning finer
+  -- would invent gaps between sizes that cannot be bought.
+  binned as (
+    select valve_type, (shim / 25) * 25 as bin_um, count(*)::int as n
+      from chosen
+     group by valve_type, (shim / 25) * 25
+  )
+  select jsonb_object_agg(
+           s.valve_type,
+           jsonb_build_object(
+             'readings', s.readings,
+             'bikes',    s.bikes,
+             'enough',   s.bikes >= min_bikes,
+             'minBikes', min_bikes,
+             'min',      case when s.bikes >= min_bikes then s.min_um end,
+             'max',      case when s.bikes >= min_bikes then s.max_um end,
+             'avg',      case when s.bikes >= min_bikes then s.avg_um end,
+             'bins',     case when s.bikes >= min_bikes then (
+                           select coalesce(
+                                    jsonb_agg(
+                                      jsonb_build_array(b.bin_um, b.n)
+                                      order by b.bin_um
+                                    ),
+                                    '[]'::jsonb
+                                  )
+                             from binned b
+                            where b.valve_type = s.valve_type
+                         ) else '[]'::jsonb end
+           )
+         )
+    into result
+    from stats s;
+
+  return coalesce(result, '{}'::jsonb);
+end;
+$$;
+
+revoke all on function public.pool_shim_distribution(text[], integer[], boolean)
+  from public, anon;
+grant execute on function public.pool_shim_distribution(text[], integer[], boolean)
+  to authenticated;

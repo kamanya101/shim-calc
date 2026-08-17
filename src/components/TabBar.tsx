@@ -9,6 +9,7 @@ const TABS = [
   { href: "/order", label: "Order", icon: CartIcon },
   { href: "/summary", label: "Summary", icon: SummaryIcon },
   { href: "/history", label: "History", icon: ClockIcon },
+  { href: "/compare", label: "Compare", icon: CompareIcon },
   { href: "/notes", label: "Notes", icon: NoteIcon },
 ] as const;
 
@@ -105,6 +106,17 @@ function ClockIcon() {
     <svg {...iconProps} aria-hidden="true">
       <circle cx="12" cy="12" r="9" />
       <path d="M12 7v5l3.2 1.9" />
+    </svg>
+  );
+}
+
+/** Two bars on a shared scale — the picture the page actually draws. */
+function CompareIcon() {
+  return (
+    <svg {...iconProps} aria-hidden="true">
+      <path d="M4 8h11M4 16h16" />
+      <circle cx="17" cy="8" r="1.6" />
+      <circle cx="7" cy="16" r="1.6" />
     </svg>
   );
 }
