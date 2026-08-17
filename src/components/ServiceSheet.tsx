@@ -62,12 +62,12 @@ export function ServiceSheet() {
 
       <Card className="mb-3 p-3">
         {/*
-          Stacked on a phone held upright, one row from 640px up — which
-          includes a phone in landscape, where the three saved rows matter most:
-          there is barely 250px of usable height once the browser chrome and the
-          tab bar have taken their share.
+          Stacked on a phone held upright; all four across from 640px up, which
+          includes a phone in landscape — that is where the saved rows matter
+          most, since there is barely 250px of usable height once the browser
+          chrome and the tab bar have taken their share.
         */}
-        <div className="grid gap-2.5 sm:grid-cols-3">
+        <div className="grid gap-2.5 sm:grid-cols-4">
           <Field label="Bike">
             <div className="flex items-stretch gap-1.5">
               <select
