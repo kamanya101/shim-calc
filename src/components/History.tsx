@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { formatDate, formatOdometer } from "@/lib/format";
 import { sheetStatus } from "@/lib/report";
 import { buildExport, downloadFile, sortRecords } from "@/lib/storage";
+import { BikeTabs } from "./BikeTabs";
 import { useRecords } from "./RecordsProvider";
 import { AverageDrift, TrendChart } from "./TrendChart";
 import { Button, Card, Chip, PageHeader } from "./ui";
@@ -47,10 +48,12 @@ export function History() {
         title="History"
         subtitle={
           bikes.length > 1
-            ? `${bike.name} — switch bikes on the Sheet`
+            ? `Services for ${bike.name}`
             : "Every service you've saved on this device"
         }
       />
+
+      <BikeTabs />
 
       <div className="mb-5 space-y-2">
         {sorted.map((record) => {
