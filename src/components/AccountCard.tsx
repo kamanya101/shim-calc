@@ -1,19 +1,9 @@
 "use client";
 
+import { timeAgo } from "@/lib/format";
 import { useAuth } from "./AuthProvider";
 import { useSync, type SyncStatus } from "./SyncProvider";
 import { Button, Card, Chip, type Tone } from "./ui";
-
-function timeAgo(iso: string | null): string {
-  if (!iso) return "not yet";
-  const seconds = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
-  if (seconds < 90) return "just now";
-  const minutes = Math.round(seconds / 60);
-  if (minutes < 60) return `${minutes} min ago`;
-  const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours} hr ago`;
-  return `${Math.round(hours / 24)} days ago`;
-}
 
 function describe(
   status: SyncStatus,

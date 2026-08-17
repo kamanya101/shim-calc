@@ -52,6 +52,18 @@ export function todayIso(): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
+/** "5 min ago". Rough on purpose — nothing here turns on the exact minute. */
+export function timeAgo(iso: string | null): string {
+  if (!iso) return "not yet";
+  const seconds = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+  if (seconds < 90) return "just now";
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} hr ago`;
+  return `${Math.round(hours / 24)} days ago`;
+}
+
 /**
  * Deliberately unitless. Plenty of these bikes are set up in miles, and the
  * number only ever gets compared against other readings from the same bike,

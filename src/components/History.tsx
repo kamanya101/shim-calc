@@ -7,6 +7,7 @@ import { sheetStatus } from "@/lib/report";
 import { downloadFile, sortRecords } from "@/lib/storage";
 import { AccountCard } from "./AccountCard";
 import { BikeTabs } from "./BikeTabs";
+import { ContributionCard } from "./ContributionCard";
 import { useRecords } from "./RecordsProvider";
 import { AverageDrift, TrendChart } from "./TrendChart";
 import { Button, Card, Chip, PageHeader } from "./ui";
@@ -144,7 +145,10 @@ export function History() {
       </div>
 
       <h2 className="mt-6 mb-2 text-sm font-bold">Account</h2>
-      <AccountCard />
+      <div className="space-y-2">
+        <AccountCard />
+        <ContributionCard />
+      </div>
 
       <h2 className="mt-6 mb-2 text-sm font-bold">Backup</h2>
       <p className="mb-2 text-xs leading-relaxed text-faint">

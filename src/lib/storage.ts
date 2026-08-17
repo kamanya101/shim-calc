@@ -31,6 +31,13 @@ export const OWNER_KEY = "shim-calc/owner/v1";
 /** Last successful reconcile, for the status line. Never a correctness input. */
 export const SYNC_KEY = "shim-calc/sync/v1";
 
+/**
+ * Whether this rider shares readings with the pool, and the token their pooled
+ * readings are keyed under. Account-scoped like everything above, so it is
+ * wiped when somebody else signs in on the same device.
+ */
+export const CONTRIBUTION_KEY = "shim-calc/contribution/v1";
+
 /** Bumped when the stored shape changes; see migrations.ts. */
 export const SCHEMA_VERSION = 4;
 

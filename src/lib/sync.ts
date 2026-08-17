@@ -1,6 +1,15 @@
 "use client";
 
-import { bikesStore, ownerStore, recordsStore, syncStore } from "./stores";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { buildContribution, newContributorToken } from "./pool";
+import {
+  bikesStore,
+  contributionStore,
+  ownerStore,
+  recordsStore,
+  syncStore,
+  type Contribution,
+} from "./stores";
 import { getSupabase } from "./supabase";
 import type { Bike, ServiceRecord, ValveReading } from "./types";
 
@@ -214,10 +223,138 @@ async function run(): Promise<SyncOutcome> {
 
     commit(bikesStore, bikes.merged);
     commit(recordsStore, records.merged);
+
+    // Contributing to the pool is a separate, optional thing, and it runs after
+    // the rider's own data is safely up. Its failures are swallowed on purpose:
+    // a pool that is unreachable — or tables that have not been created yet —
+    // must not report a rider's own history as failing to sync, when it just
+    // did. Nothing is lost either way; the next reconcile tries again.
+    try {
+      await syncContributions(supabase, userId);
+    } catch {
+      // Deliberately silent. See above.
+    }
+
     syncStore.set({ lastSyncedAt: new Date().toISOString() });
     return "synced";
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     return isNetworkError(message) ? "offline" : "error";
   }
+}
+
+type ContributorRow = {
+  user_id: string;
+  token: string;
+  opted_in_at: string | null;
+  withdrawn_at: string | null;
+  updated_at: string;
+};
+
+/**
+ * Reconcile the consent record, then send what the pool does not have.
+ *
+ * Consent merges the way everything else does — later wins — with one
+ * exception, which is the token. Once the server has issued one it is never
+ * overwritten, even by a device whose copy is newer. Two devices that both
+ * opted in while offline would otherwise each insist on their own token, and
+ * every reading pushed under the loser would be stranded: still in the pool,
+ * still counted, but belonging to a bike that now appears to be somebody
+ * else's. A token is an identity, not an opinion.
+ */
+async function syncContributions(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<void> {
+  const local = contributionStore.get();
+
+  const { data, error } = await supabase
+    .from("contributors")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) throw error;
+
+  let server = data as ContributorRow | null;
+
+  if (!server) {
+    // Nobody has ever agreed to anything on this account, and this device has
+    // nothing to say about it either.
+    if (!local.optedInAt) return;
+
+    const row: ContributorRow = {
+      user_id: userId,
+      token: local.token ?? newContributorToken(),
+      opted_in_at: local.optedInAt,
+      withdrawn_at: local.withdrawnAt,
+      updated_at: local.updatedAt,
+    };
+    const insert = await supabase.from("contributors").insert(row);
+    if (insert.error) {
+      // Another device got there first with its own token. Theirs stands.
+      const retry = await supabase
+        .from("contributors")
+        .select("*")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (retry.error) throw retry.error;
+      server = retry.data as ContributorRow | null;
+    } else {
+      server = row;
+    }
+    if (!server) return;
+  } else if (local.updatedAt > server.updated_at) {
+    const update = await supabase
+      .from("contributors")
+      .update({
+        opted_in_at: local.optedInAt,
+        withdrawn_at: local.withdrawnAt,
+        updated_at: local.updatedAt,
+      })
+      .eq("user_id", userId);
+    if (update.error) throw update.error;
+    server = {
+      ...server,
+      opted_in_at: local.optedInAt,
+      withdrawn_at: local.withdrawnAt,
+      updated_at: local.updatedAt,
+    };
+  }
+
+  const next: Contribution = {
+    ...local,
+    token: server.token,
+    optedInAt: server.opted_in_at,
+    withdrawnAt: server.withdrawn_at,
+    updatedAt: server.updated_at,
+  };
+
+  // A different token means different keys for every reading, so nothing this
+  // device believes it has already sent applies any more.
+  if (local.token !== server.token) {
+    next.lastPushed = null;
+    next.lastPushedAt = null;
+  }
+
+  if (next.optedInAt && !next.withdrawnAt) {
+    const payload = await buildContribution(
+      server.token,
+      bikesStore.get(),
+      recordsStore.get(),
+    );
+
+    if (payload.signature !== next.lastPushed) {
+      const { error: pushError } = await supabase.rpc("contribute_readings", {
+        readings: payload.readings,
+        retract: payload.retract,
+      });
+      if (pushError) throw pushError;
+      next.lastPushed = payload.signature;
+      next.lastPushedAt = new Date().toISOString();
+    }
+
+    next.shared = payload.readings.length;
+  }
+
+  if (JSON.stringify(local) !== JSON.stringify(next)) contributionStore.set(next);
 }
