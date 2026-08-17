@@ -7,12 +7,34 @@
  * hundred kB of static files and all the data lives in localStorage.
  */
 
-// Bump on any change to the route list or caching strategy. Activation clears
-// every cache that isn't this one, which is also how stale asset entries from
-// previous deploys get swept.
-const VERSION = "v2";
+/*
+ * The version comes from the query string the page registers us with, which is
+ * the build id. That makes this script byte-different on every deploy, so the
+ * browser installs a fresh worker and activation drops every older cache.
+ *
+ * Hard-coding a version here was a mistake: unchanged sw.js meant no new
+ * worker, so a deploy could leave people staring at the previous build with no
+ * way to know, and no way to fix it short of clearing site data.
+ */
+const VERSION =
+  new URL(self.location.href).searchParams.get("v") || "fallback";
 const CACHE = `shim-calc-${VERSION}`;
 const OFFLINE_URLS = ["/", "/order", "/summary", "/history", "/notes"];
+
+/**
+ * True for the payloads Next.js fetches when you tap a tab rather than reload.
+ * They live at the page's own URL, so caching them served a stale page while
+ * the address bar and the HTML both looked current — the exact way this went
+ * wrong. Always go to the network first for these.
+ */
+function isAppPayload(request, url) {
+  return (
+    request.mode === "navigate" ||
+    url.searchParams.has("_rsc") ||
+    request.headers.get("RSC") === "1" ||
+    request.headers.get("Next-Router-Prefetch") === "1"
+  );
+}
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -45,12 +67,16 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  if (request.mode === "navigate") {
+  if (isAppPayload(request, url)) {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE).then((cache) => cache.put(request, copy));
+          // Only keep full page loads for the offline case. Router payloads
+          // are deploy-specific and must never be replayed from cache.
+          if (request.mode === "navigate" && response.status === 200) {
+            const copy = response.clone();
+            caches.open(CACHE).then((cache) => cache.put(request, copy));
+          }
           return response;
         })
         .catch(async () => {
