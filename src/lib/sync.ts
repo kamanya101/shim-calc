@@ -246,21 +246,20 @@ async function run(): Promise<SyncOutcome> {
 type ContributorRow = {
   user_id: string;
   token: string;
-  opted_in_at: string | null;
-  withdrawn_at: string | null;
   updated_at: string;
 };
 
 /**
- * Reconcile the consent record, then send what the pool does not have.
+ * Send the pool what it does not have.
  *
- * Consent merges the way everything else does — later wins — with one
- * exception, which is the token. Once the server has issued one it is never
- * overwritten, even by a device whose copy is newer. Two devices that both
- * opted in while offline would otherwise each insist on their own token, and
- * every reading pushed under the loser would be stranded: still in the pool,
- * still counted, but belonging to a bike that now appears to be somebody
- * else's. A token is an identity, not an opinion.
+ * There is no consent to reconcile — measurements go up because the app is
+ * being used — so the only thing that has to agree across a rider's devices is
+ * the token, and it agrees by never changing. Once the server has issued one
+ * it is never overwritten, even by a device that has generated its own. Two
+ * devices first syncing at the same time would otherwise each insist on their
+ * own, and every reading pushed under the loser would be stranded: still in
+ * the pool, still counted, but looking like a different motorcycle. A token is
+ * an identity, not an opinion.
  */
 async function syncContributions(
   supabase: SupabaseClient,
@@ -278,16 +277,10 @@ async function syncContributions(
   let server = data as ContributorRow | null;
 
   if (!server) {
-    // Nobody has ever agreed to anything on this account, and this device has
-    // nothing to say about it either.
-    if (!local.optedInAt) return;
-
     const row: ContributorRow = {
       user_id: userId,
       token: local.token ?? newContributorToken(),
-      opted_in_at: local.optedInAt,
-      withdrawn_at: local.withdrawnAt,
-      updated_at: local.updatedAt,
+      updated_at: new Date().toISOString(),
     };
     const insert = await supabase.from("contributors").insert(row);
     if (insert.error) {
@@ -303,31 +296,9 @@ async function syncContributions(
       server = row;
     }
     if (!server) return;
-  } else if (local.updatedAt > server.updated_at) {
-    const update = await supabase
-      .from("contributors")
-      .update({
-        opted_in_at: local.optedInAt,
-        withdrawn_at: local.withdrawnAt,
-        updated_at: local.updatedAt,
-      })
-      .eq("user_id", userId);
-    if (update.error) throw update.error;
-    server = {
-      ...server,
-      opted_in_at: local.optedInAt,
-      withdrawn_at: local.withdrawnAt,
-      updated_at: local.updatedAt,
-    };
   }
 
-  const next: Contribution = {
-    ...local,
-    token: server.token,
-    optedInAt: server.opted_in_at,
-    withdrawnAt: server.withdrawn_at,
-    updatedAt: server.updated_at,
-  };
+  const next: Contribution = { ...local, token: server.token };
 
   // A different token means different keys for every reading, so nothing this
   // device believes it has already sent applies any more.
@@ -336,25 +307,23 @@ async function syncContributions(
     next.lastPushedAt = null;
   }
 
-  if (next.optedInAt && !next.withdrawnAt) {
-    const payload = await buildContribution(
-      server.token,
-      bikesStore.get(),
-      recordsStore.get(),
-    );
+  const payload = await buildContribution(
+    server.token,
+    bikesStore.get(),
+    recordsStore.get(),
+  );
 
-    if (payload.signature !== next.lastPushed) {
-      const { error: pushError } = await supabase.rpc("contribute_readings", {
-        readings: payload.readings,
-        retract: payload.retract,
-      });
-      if (pushError) throw pushError;
-      next.lastPushed = payload.signature;
-      next.lastPushedAt = new Date().toISOString();
-    }
-
-    next.shared = payload.readings.length;
+  if (payload.signature !== next.lastPushed) {
+    const { error: pushError } = await supabase.rpc("contribute_readings", {
+      readings: payload.readings,
+      retract: payload.retract,
+    });
+    if (pushError) throw pushError;
+    next.lastPushed = payload.signature;
+    next.lastPushedAt = new Date().toISOString();
   }
+
+  next.shared = payload.readings.length;
 
   if (JSON.stringify(local) !== JSON.stringify(next)) contributionStore.set(next);
 }

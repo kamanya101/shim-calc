@@ -34,26 +34,16 @@ export type SyncState = {
 };
 
 /**
- * Whether this rider contributes to the shared pool.
+ * This device's side of the shared pool.
  *
- * Having an account and feeding the pool are two separate decisions, so this is
- * its own record rather than a flag on the owner. It is also the only place the
- * contributor token lives on the device — the value every pooled reading of
- * theirs is keyed under; see pool.ts.
+ * Contributing is not a setting. Using the app is what puts a rider's
+ * measurements into the averages, so there is no flag here recording an
+ * answer — only the contributor token, which is the value every pooled
+ * reading of theirs is keyed under (see pool.ts), and enough bookkeeping to
+ * avoid re-sending an unchanged pool on every sync.
  */
 export type Contribution = {
   token: string | null;
-  /** When sharing was first agreed to. Null means it never was. */
-  optedInAt: string | null;
-  /** Set when sharing is turned off. What is already pooled stays pooled. */
-  withdrawnAt: string | null;
-  /**
-   * When the two fields above last changed. Merged with the server copy the
-   * same way every other row is: later wins. Empty until the rider decides
-   * anything, so a device that has never been asked can never overrule one
-   * that has.
-   */
-  updatedAt: string;
   /** Fingerprint of the last payload the server accepted. */
   lastPushed: string | null;
   lastPushedAt: string | null;
@@ -67,9 +57,6 @@ const NO_SYNC: SyncState = { lastSyncedAt: null };
 
 const NO_CONTRIBUTION: Contribution = {
   token: null,
-  optedInAt: null,
-  withdrawnAt: null,
-  updatedAt: "",
   lastPushed: null,
   lastPushedAt: null,
   shared: 0,
@@ -131,20 +118,19 @@ export const contributionStore = createLocalStore<Contribution>(
   (raw) => {
     const value = raw as Partial<Contribution> | null;
     if (!value || typeof value !== "object") return null;
-    // Filled out rather than validated field by field: a stored copy written
-    // by an older build is worth keeping for the one thing that matters in it,
-    // which is the token. Losing that would orphan readings this rider is
-    // still contributing and start them a second, parallel set.
-    return { ...NO_CONTRIBUTION, ...value };
+    // Read field by field rather than spread, so the opt-in flags an earlier
+    // build stored are dropped instead of lingering. The token is the one
+    // thing worth carrying across: losing it would orphan the readings this
+    // rider has already contributed and start them a second, parallel set.
+    return {
+      token: typeof value.token === "string" ? value.token : null,
+      lastPushed: typeof value.lastPushed === "string" ? value.lastPushed : null,
+      lastPushedAt:
+        typeof value.lastPushedAt === "string" ? value.lastPushedAt : null,
+      shared: typeof value.shared === "number" ? value.shared : 0,
+    };
   },
 );
-
-/** Opted in, and not since turned off. */
-export function isContributing(contribution: Contribution): boolean {
-  return Boolean(
-    contribution.token && contribution.optedInAt && !contribution.withdrawnAt,
-  );
-}
 
 /**
  * Wipe every trace of one rider's data from this device.

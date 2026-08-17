@@ -2,65 +2,34 @@
 
 import { useMemo } from "react";
 import { timeAgo } from "@/lib/format";
-import { countShareable, newContributorToken } from "@/lib/pool";
+import { countShareable } from "@/lib/pool";
 import { useLocalStore } from "@/lib/store";
-import { contributionStore, isContributing } from "@/lib/stores";
+import { contributionStore } from "@/lib/stores";
 import { useRecords } from "./RecordsProvider";
-import { useSync } from "./SyncProvider";
-import { Button, Card, Chip } from "./ui";
+import { Card, Chip } from "./ui";
 
 /**
- * Turning the shared pool on and off.
+ * What the app does with a rider's measurements, stated where they will see it.
  *
- * Kept separate from the account card because it is a separate decision:
- * having an account is how a rider's own history follows them between phone
- * and tablet, and it commits them to nothing else. Rolling the two together
- * would make signing in feel like signing something.
+ * There is no switch here, because there is no decision. Every service that
+ * gets measured joins the shared averages, and that is a property of the app
+ * rather than a preference in it. Saying so plainly is the least this screen
+ * can do: a rider who reads it knows exactly what is happening, which is the
+ * difference between a stated policy and a quiet one.
  *
- * The wording tries to be honest about the one thing that cannot be undone.
- * Everything else here is reversible; a reading that has left is gone in the
- * sense that matters — nobody, this rider included, can point at it again once
- * their account goes. Someone deciding this deserves to read it in a sentence,
- * not to find out later.
+ * What it does not claim: it never calls the readings a contribution the rider
+ * chose to make, and never offers a way out that does not exist. The one thing
+ * they can genuinely act on — deleting a service soon enough to take it back
+ * out — is the thing that gets the emphasis.
  */
 export function ContributionCard() {
   const contribution = useLocalStore(contributionStore);
   const { bikes, allRecords } = useRecords();
-  const { syncNow } = useSync();
 
-  const sharing = isContributing(contribution);
   const counts = useMemo(
     () => countShareable(bikes, allRecords),
     [bikes, allRecords],
   );
-
-  const start = () => {
-    const now = new Date().toISOString();
-    contributionStore.set({
-      ...contribution,
-      // Kept if there already is one: re-joining after a change of mind should
-      // put a rider's readings back with the ones they shared the first time,
-      // not start a second bike alongside their own in the averages.
-      token: contribution.token ?? newContributorToken(),
-      optedInAt: contribution.optedInAt ?? now,
-      withdrawnAt: null,
-      updatedAt: now,
-      // The keys have not changed, but the pool may have dropped rows while
-      // this was off. Push everything again rather than assume.
-      lastPushed: null,
-    });
-    syncNow();
-  };
-
-  const stop = () => {
-    const now = new Date().toISOString();
-    contributionStore.set({
-      ...contribution,
-      withdrawnAt: now,
-      updatedAt: now,
-    });
-    syncNow();
-  };
 
   return (
     <Card className="p-4">
@@ -68,85 +37,43 @@ export function ContributionCard() {
         <div>
           <p className="text-sm font-semibold">Shared wear data</p>
           <p className="mt-0.5 text-xs text-faint">
-            Optional, and separate from your account.
+            How this app builds its averages.
           </p>
         </div>
-        <Chip tone={sharing ? "ok" : "neutral"}>
-          {sharing ? "Sharing" : "Not sharing"}
+        <Chip tone="neutral">
+          {counts.readings.toLocaleString()} readings
         </Chip>
       </div>
 
-      {sharing ? (
-        <>
-          <p className="mt-3 text-xs leading-relaxed text-muted">
-            <strong className="text-ink">
-              {counts.readings.toLocaleString()} readings
-            </strong>{" "}
-            from {counts.bikes === 1 ? "one bike" : `${counts.bikes} bikes`}
-            {contribution.lastPushedAt ? (
-              <>
-                {" "}
-                — last sent {timeAgo(contribution.lastPushedAt)}. New services
-                go up on their own from now on.
-              </>
-            ) : (
-              // Says nothing about why. It is almost always "no signal yet",
-              // and a rider under a bike does not need the app speculating.
-              <> — nothing has reached the pool yet. It goes up on the next sync.</>
-            )}
-          </p>
-          <p className="mt-2 text-xs leading-relaxed text-faint">
-            Stopping ends anything further going up, and closes the comparison
-            to you. What is already in the pool stays there.
-          </p>
-          <div className="mt-3">
-            <Button variant="ghost" onClick={stop}>
-              Stop sharing
-            </Button>
-          </div>
-        </>
-      ) : (
-        <>
-          <p className="mt-3 text-xs leading-relaxed text-muted">
-            These engines wear in a pattern, and one bike&apos;s history is too
-            small a sample to see it. Share yours and it joins everybody
-            else&apos;s. Once enough has come in, you&apos;ll be able to see how
-            your engine compares — whether your intakes are closing up faster
-            than the average for your model, or whether that one stubborn valve
-            is normal.
-          </p>
-          <p className="mt-2 text-xs leading-relaxed text-muted">
-            <strong className="text-ink">What goes:</strong> the model and year,
-            the odometer, the month, and for each valve the gap you found, the
-            shim that was in it and the gap you confirmed. Your{" "}
-            {counts.readings > 0 ? (
-              <>
-                {counts.readings.toLocaleString()} existing readings go too, not
-                just future ones.
-              </>
-            ) : (
-              <>existing services go too, not just future ones.</>
-            )}
-          </p>
-          <p className="mt-2 text-xs leading-relaxed text-muted">
-            <strong className="text-ink">What doesn&apos;t:</strong> your name,
-            your email, what you call your bike, or anything linking a reading
-            back to you. That link is missing on purpose, and it has one
-            consequence worth knowing before you decide: if you ever delete your
-            account, the readings stay in the pool and nobody — me included —
-            can find them again to take them out.
-          </p>
-          <p className="mt-2 text-xs leading-relaxed text-faint">
-            You can stop at any time, and deleting a service takes its readings
-            back out of the pool while your account still exists.
-          </p>
-          <div className="mt-3">
-            <Button variant="accent" onClick={start}>
-              Share my measurements
-            </Button>
-          </div>
-        </>
-      )}
+      <p className="mt-3 text-xs leading-relaxed text-muted">
+        One bike&rsquo;s history is too small a sample to show how these engines
+        wear. So every gap you measure joins a shared pool alongside everybody
+        else&rsquo;s, and once enough has come in it becomes a comparison — how
+        your engine is wearing against the average for your model.
+      </p>
+
+      <p className="mt-2 text-xs leading-relaxed text-muted">
+        <strong className="text-ink">What goes:</strong> the model and year, the
+        odometer, the month, and for each valve the gap you found, the shim that
+        was in it and the gap you confirmed.{" "}
+        <strong className="text-ink">What doesn&rsquo;t:</strong> your name,
+        your email, what you call your bike, or anything that ties a reading
+        back to you — that link is deliberately missing, and it cannot be
+        reconstructed later by anyone, including me.
+      </p>
+
+      <p className="mt-2 text-xs leading-relaxed text-muted">
+        <strong className="text-ink">To take a reading back out</strong>, delete
+        its service within a month and it leaves the pool with it. After that
+        the averages keep it, and deleting only removes it from your own
+        history.
+      </p>
+
+      <p className="mt-2 text-[11px] text-faint">
+        {contribution.lastPushedAt
+          ? `Last sent ${timeAgo(contribution.lastPushedAt)}.`
+          : "Nothing sent yet — it goes up on the next sync."}
+      </p>
     </Card>
   );
 }

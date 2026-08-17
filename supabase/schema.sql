@@ -162,23 +162,28 @@ $$;
 -- ---------------------------------------------------------------------------
 
 
--- Who has agreed to contribute, and under what token.
+-- Which token a rider's pooled readings are keyed under.
 --
 -- This is the only table that knows a token belongs to somebody, and it is the
 -- only one that cascades. Close an account and this row goes; the readings it
 -- keyed stay, and become unattributable in the same instant. That is the whole
 -- design in one sentence.
+--
+-- It carries no consent flag. Contributing is not a decision a rider makes —
+-- using the app is what puts their measurements in the pool — so there is
+-- nothing here to record an answer to, and nothing to switch off.
 create table if not exists public.contributors (
   user_id     uuid primary key references auth.users (id) on delete cascade,
   -- 32 random bytes, hex, generated on the device. Every pooled reading of
   -- theirs is keyed on a hash of this; see src/lib/pool.ts.
   token       text not null unique,
-  opted_in_at text,
-  -- Set when sharing is switched off. Stops anything further going up and
-  -- closes the comparison; what is already pooled is not touched.
-  withdrawn_at text,
   updated_at  text not null
 );
+
+-- Dropped from the earlier shape, which asked. Guarded so this file stays
+-- re-runnable, and so a database created after the change never grew them.
+alter table public.contributors drop column if exists opted_in_at;
+alter table public.contributors drop column if exists withdrawn_at;
 
 alter table public.contributors enable row level security;
 grant select, insert, update on public.contributors to authenticated;
@@ -227,6 +232,13 @@ create table if not exists public.pooled_readings (
   created_at          text not null,
   updated_at          text not null,
 
+  -- When this reading reached the pool, by the server's clock rather than the
+  -- device's. It is the only date here that a rider cannot influence, which is
+  -- why the retraction window below is measured against it and not against
+  -- created_at — that one is the date of the service, and is whatever the
+  -- phone said it was.
+  pooled_at           timestamptz not null default now(),
+
   -- Sanity, not validation: the app is the only writer and it writes whole
   -- microns. These exist so that a bug which starts sending millimetres, or a
   -- year of 20I0, is stopped at the door rather than quietly averaged in
@@ -241,6 +253,12 @@ create table if not exists public.pooled_readings (
   constraint pooled_readings_chosen_shim check (chosen_shim is null or chosen_shim between 0 and 10000),
   constraint pooled_readings_confirmed check (confirmed_clearance is null or confirmed_clearance between 0 and 5000)
 );
+
+-- Applied separately so a pool created before this column existed picks it up.
+-- Rows already in it are stamped with the moment it is added, which starts
+-- their retraction window now rather than pretending they arrived earlier.
+alter table public.pooled_readings
+  add column if not exists pooled_at timestamptz not null default now();
 
 -- The two questions the comparison will ask: one bike's readings for a valve
 -- in odometer order, and every reading for a model.
@@ -264,14 +282,20 @@ revoke all on public.pooled_readings from anon, authenticated;
 
 -- The only way in.
 --
--- Runs as the owner, so it reaches past the locks above, and it checks the
--- caller's own consent row before it writes a thing. Withdrawn consent, or no
--- consent at all, and the call is refused.
+-- Runs as the owner, so it reaches past the locks above, and it refuses anyone
+-- without a contributor row of their own — which is every signed-in rider, the
+-- app creates it on first sync.
 --
 -- Retractions are named ids and nothing else: no filter is ever accepted from
 -- the caller, so the worst a malicious rider can do is delete rows whose ids
 -- they can produce — which means rows derived from their own token. Guessing
 -- one is guessing a SHA-256.
+--
+-- And a retraction only works for a month. Deleting a service is how a rider
+-- takes a mistyped reading back out while it is still fresh; after that the
+-- pool keeps it and the deletion only affects what they themselves can see.
+-- The window is enforced here rather than in the app, because a rule the
+-- client could simply decline to apply is not a rule.
 create or replace function public.contribute_readings(
   readings jsonb default '[]'::jsonb,
   retract  text[] default '{}'::text[]
@@ -288,10 +312,7 @@ begin
   select * into me from public.contributors where user_id = auth.uid();
 
   if me.user_id is null then
-    raise exception 'no contribution consent on record';
-  end if;
-  if me.withdrawn_at is not null then
-    raise exception 'contribution consent has been withdrawn';
+    raise exception 'no contributor record for this account';
   end if;
 
   -- A rider with a hundred services sends a few hundred rows. Anything near
@@ -304,8 +325,14 @@ begin
   -- Retractions first. A valve whose measurement was cleared arrives in the
   -- retract list, and one that was re-entered arrives in both lists — deleting
   -- before inserting is what makes the second case land the right way round.
+  --
+  -- The app re-sends every retraction it knows about on every push, so this
+  -- list keeps naming readings that are long past the window. Those simply do
+  -- not match, which is the intended outcome and not an error.
   if coalesce(array_length(retract, 1), 0) > 0 then
-    delete from public.pooled_readings where id = any(retract);
+    delete from public.pooled_readings
+     where id = any(retract)
+       and pooled_at > now() - interval '30 days';
   end if;
 
   insert into public.pooled_readings (
@@ -328,6 +355,11 @@ begin
   -- row. A rider's devices agree with each other before any of this runs — see
   -- the reconcile in src/lib/sync.ts — so whatever arrives is already the copy
   -- they have settled on.
+  --
+  -- `pooled_at` is pointedly absent from the update list. It records when the
+  -- reading first arrived, and editing a service must not push that forward —
+  -- otherwise a year-old reading could be handed a fresh month to be deleted
+  -- in by changing one digit and putting it back.
   on conflict (id) do update set
     bike_key            = excluded.bike_key,
     service_key         = excluded.service_key,
