@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { APP_NAME } from "@/lib/app";
-import { signIn, signUp } from "@/lib/auth";
+import { requestPasswordReset, signIn, signUp } from "@/lib/auth";
 import { Button, Card } from "./ui";
 
-type Mode = "in" | "up";
+type Mode = "in" | "up" | "forgot";
 
 /**
  * The first screen a new rider sees, and the only one that needs a connection.
@@ -21,6 +21,7 @@ export function SignIn() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirm, setConfirm] = useState(false);
+  const [sent, setSent] = useState(false);
   const [online, setOnline] = useState(true);
 
   useEffect(() => {
@@ -39,14 +40,30 @@ export function SignIn() {
     setBusy(true);
     setError(null);
     setConfirm(false);
+    setSent(false);
 
-    const result = mode === "in" ? await signIn(email, password) : await signUp(email, password);
+    const result =
+      mode === "in"
+        ? await signIn(email, password)
+        : mode === "up"
+          ? await signUp(email, password)
+          : await requestPasswordReset(email);
 
     // On success the owner store changes and the gate above swaps this screen
-    // for the app, so there is nothing to do here but stop.
+    // for the app, so there is nothing to do here but stop. Asking for a reset
+    // is the exception: nothing changes on this device until they follow the
+    // link, so it has to say something.
     if (!result.ok) setError(result.error);
+    else if (mode === "forgot") setSent(true);
     else if (result.needsConfirmation) setConfirm(true);
     setBusy(false);
+  };
+
+  const switchTo = (next: Mode) => {
+    setMode(next);
+    setError(null);
+    setConfirm(false);
+    setSent(false);
   };
 
   const field =
@@ -85,21 +102,30 @@ export function SignIn() {
             />
           </label>
 
-          <label className="flex flex-col gap-1">
-            <span className="text-xs font-semibold text-muted">Password</span>
-            <input
-              type="password"
-              value={password}
-              required
-              minLength={8}
-              autoComplete={mode === "in" ? "current-password" : "new-password"}
-              onChange={(e) => setPassword(e.target.value)}
-              className={field}
-            />
-            {mode === "up" && (
-              <span className="text-[11px] text-faint">At least 8 characters.</span>
-            )}
-          </label>
+          {mode !== "forgot" && (
+            <label className="flex flex-col gap-1">
+              <span className="text-xs font-semibold text-muted">Password</span>
+              <input
+                type="password"
+                value={password}
+                required
+                minLength={8}
+                autoComplete={mode === "in" ? "current-password" : "new-password"}
+                onChange={(e) => setPassword(e.target.value)}
+                className={field}
+              />
+              {mode === "up" && (
+                <span className="text-[11px] text-faint">At least 8 characters.</span>
+              )}
+            </label>
+          )}
+
+          {mode === "forgot" && (
+            <p className="text-xs leading-relaxed text-faint">
+              We&rsquo;ll email you a link to set a new one. Your services stay
+              exactly where they are.
+            </p>
+          )}
 
           {error && <p className="text-sm text-bad">{error}</p>}
           {confirm && (
@@ -108,9 +134,21 @@ export function SignIn() {
               come back and sign in.
             </p>
           )}
+          {sent && (
+            <p className="text-sm text-ok">
+              If that address has an account, a link is on its way. It works
+              once, and only for about an hour.
+            </p>
+          )}
 
           <Button type="submit" variant="accent" disabled={busy}>
-            {busy ? "Just a moment…" : mode === "in" ? "Sign in" : "Create account"}
+            {busy
+              ? "Just a moment…"
+              : mode === "in"
+                ? "Sign in"
+                : mode === "up"
+                  ? "Create account"
+                  : "Email me a link"}
           </Button>
         </form>
       </Card>
@@ -118,16 +156,24 @@ export function SignIn() {
       <Button
         variant="ghost"
         className="mt-3"
-        onClick={() => {
-          setMode(mode === "in" ? "up" : "in");
-          setError(null);
-          setConfirm(false);
-        }}
+        onClick={() => switchTo(mode === "in" ? "up" : "in")}
       >
         {mode === "in"
           ? "No account yet? Create one"
           : "Already have an account? Sign in"}
       </Button>
+
+      {/* Only offered where it makes sense: somebody halfway through creating
+          an account has no password to have forgotten. */}
+      {mode === "in" && (
+        <button
+          type="button"
+          onClick={() => switchTo("forgot")}
+          className="mt-1 text-xs font-semibold text-faint underline underline-offset-2 hover:text-muted"
+        >
+          Forgotten your password?
+        </button>
+      )}
     </main>
   );
 }

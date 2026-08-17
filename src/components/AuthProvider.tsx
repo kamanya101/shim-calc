@@ -1,6 +1,8 @@
 "use client";
 
 import { createContext, useCallback, useContext } from "react";
+import { usePathname } from "next/navigation";
+import { RESET_PATH } from "@/lib/app";
 import { signOut as signOutUser } from "@/lib/auth";
 import { useHydrated, useLocalStore } from "@/lib/store";
 import { ownerStore, type Owner } from "@/lib/stores";
@@ -35,6 +37,7 @@ export function useAuth(): AuthContextValue {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const hydrated = useHydrated();
   const owner = useLocalStore(ownerStore);
+  const pathname = usePathname();
 
   const signOut = useCallback(async () => {
     await signOutUser();
@@ -51,6 +54,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
+
+  // The reset screen has to be reachable by somebody who cannot sign in —
+  // that is the entire point of it — so the gate does not apply. It provides
+  // no auth context, and nothing on it asks for one.
+  if (pathname === RESET_PATH) return <>{children}</>;
 
   if (!owner) return <SignIn />;
 

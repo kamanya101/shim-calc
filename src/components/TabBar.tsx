@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { RESET_PATH } from "@/lib/app";
 
 const TABS = [
   { href: "/", label: "Sheet", icon: SheetIcon },
@@ -13,6 +14,10 @@ const TABS = [
 
 export function TabBar() {
   const pathname = usePathname();
+
+  // Every tab leads somewhere that needs an account, and the one person who
+  // sees the reset screen hasn't got into theirs yet.
+  if (pathname === RESET_PATH) return null;
 
   return (
     <nav
