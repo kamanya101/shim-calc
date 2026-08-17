@@ -287,6 +287,18 @@ function Panels({
     [engine, records, mine],
   );
 
+  // One panel per valve, in the engine's own order, so a rider reading down
+  // this page meets the valves in the same order as on the sheet and in the
+  // trend charts.
+  const perValve = useMemo(
+    () =>
+      engine.positions.map((position) => ({
+        position,
+        values: riderShims(records, [position], mine),
+      })),
+    [engine, records, mine],
+  );
+
   if (loading && !result) {
     return <p className="py-6 text-center text-sm text-faint">Reading the pool…</p>;
   }
@@ -317,7 +329,7 @@ function Panels({
     );
   }
 
-  const any = series.some((s) => result.distribution[s.type]?.readings);
+  const any = series.some((s) => result.distribution.byType[s.type]?.readings);
   if (!any) {
     return (
       <EmptyState title="Nothing in the pool yet">
@@ -329,6 +341,7 @@ function Panels({
 
   return (
     <div className={loading ? "opacity-50 transition-opacity" : undefined}>
+      <h2 className="mb-2 text-sm font-bold">All four together</h2>
       <div className="grid gap-2.5 sm:grid-cols-2">
         {series.map(({ type, count, values }) => (
           <Card key={type} className="p-2.5">
@@ -336,10 +349,10 @@ function Panels({
               <span>
                 All {count} <span className="capitalize">{type}</span> Valves
               </span>
-              <SampleSize side={result.distribution[type]} />
+              <SampleSize side={result.distribution.byType[type]} />
             </h4>
             <ComparePanel
-              side={result.distribution[type]}
+              side={result.distribution.byType[type]}
               mine={values}
               emphasiseAverage={emphasiseAverage}
               label={type}
@@ -348,6 +361,35 @@ function Panels({
         ))}
       </div>
       <Legend />
+
+      {/*
+        The combined panels above can hide the thing worth finding. Four valves
+        averaged together sit comfortably in the crowd while one of them is out
+        on its own at the thin end — which is exactly the valve worth knowing
+        about. Same scale, same reading, one valve at a time.
+      */}
+      <h2 className="mt-6 mb-2 text-sm font-bold">Valve by valve</h2>
+      <p className="mb-2 text-xs leading-relaxed text-faint">
+        Each valve against the same valve on every other bike. An average can
+        sit in the middle of the crowd while one valve underneath it is out at
+        an edge on its own.
+      </p>
+      <div className="grid gap-2.5 sm:grid-cols-2">
+        {perValve.map(({ position, values }) => (
+          <Card key={position.id} className="p-2.5">
+            <h4 className="mb-1 flex items-baseline justify-between gap-2 text-xs font-semibold">
+              <span>{position.label}</span>
+              <SampleSize side={result.distribution.byPosition[position.id]} />
+            </h4>
+            <ComparePanel
+              side={result.distribution.byPosition[position.id]}
+              mine={values}
+              emphasiseAverage={emphasiseAverage}
+              label={position.label}
+            />
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }

@@ -85,7 +85,14 @@ export type PoolSide = {
   bins: [Microns, number][];
 };
 
-export type PoolDistribution = Partial<Record<ValveType, PoolSide>>;
+export type PoolDistribution = {
+  /** The four-valve average, keyed "intake" / "exhaust". */
+  byType: Partial<Record<ValveType, PoolSide>>;
+  /** One valve on its own, keyed by position id. */
+  byPosition: Record<string, PoolSide | undefined>;
+};
+
+const EMPTY_DISTRIBUTION: PoolDistribution = { byType: {}, byPosition: {} };
 
 const MODEL_IDS: Record<"950" | "990", string[]> = {
   950: BIKE_MODELS.filter((m) => m.family === "950").map((m) => m.id),
@@ -184,7 +191,10 @@ export async function fetchPoolDistribution(
   );
 
   if (error) return { state: "error", message: error.message };
-  return { state: "ok", distribution: (data ?? {}) as PoolDistribution };
+  return {
+    state: "ok",
+    distribution: (data as PoolDistribution | null) ?? EMPTY_DISTRIBUTION,
+  };
 }
 
 /** Oldest first, the same ordering the trend charts read in. */

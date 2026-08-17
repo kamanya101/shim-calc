@@ -476,27 +476,41 @@ begin
   -- "what are people running" would count a rider who services often far more
   -- times than one who does not.
   chosen as (
-    select * from ranked where not latest_only or rn = 1
+    -- coalesced because `not null` is null, not true: a caller passing no
+    -- value for latest_only would otherwise match no rows at all and get a
+    -- confidently empty answer rather than an error.
+    select * from ranked where not coalesce(latest_only, false) or rn = 1
+  ),
+  -- The same readings counted twice over: once per valve type, which is the
+  -- four-valve average, and once per position, which is one valve on its own.
+  -- Both are asked for together because they are one question — "where do I
+  -- sit" — and a second round trip to answer the second half of it would only
+  -- let the two halves disagree about which readings they were drawn from.
+  grouped as (
+    select 'type'::text as kind, valve_type as grp, shim, bike_key from chosen
+    union all
+    select 'position',           position_id,      shim, bike_key from chosen
   ),
   stats as (
-    select valve_type,
+    select kind, grp,
            count(*)::int                as readings,
            count(distinct bike_key)::int as bikes,
            min(shim)::int               as min_um,
            max(shim)::int               as max_um,
            round(avg(shim))::int        as avg_um
-      from chosen
-     group by valve_type
+      from grouped
+     group by kind, grp
   ),
   -- 25 microns: the real step between one shim and the next. Binning finer
   -- would invent gaps between sizes that cannot be bought.
   binned as (
-    select valve_type, (shim / 25) * 25 as bin_um, count(*)::int as n
-      from chosen
-     group by valve_type, (shim / 25) * 25
-  )
-  select jsonb_object_agg(
-           s.valve_type,
+    select kind, grp, (shim / 25) * 25 as bin_um, count(*)::int as n
+      from grouped
+     group by kind, grp, (shim / 25) * 25
+  ),
+  shaped as (
+    select s.kind,
+           s.grp,
            jsonb_build_object(
              'readings', s.readings,
              'bikes',    s.bikes,
@@ -514,14 +528,32 @@ begin
                                     '[]'::jsonb
                                   )
                              from binned b
-                            where b.valve_type = s.valve_type
+                            where b.kind = s.kind and b.grp = s.grp
                          ) else '[]'::jsonb end
+           ) as side
+      from stats s
+  )
+  select jsonb_build_object(
+           'byType',
+           coalesce(
+             jsonb_object_agg(grp, side) filter (where kind = 'type'),
+             '{}'::jsonb
+           ),
+           'byPosition',
+           coalesce(
+             jsonb_object_agg(grp, side) filter (where kind = 'position'),
+             '{}'::jsonb
            )
          )
     into result
-    from stats s;
+    from shaped;
 
-  return coalesce(result, '{}'::jsonb);
+  -- An empty pool still answers in the right shape, so the caller never has to
+  -- tell "nothing matched" apart from "the reply was malformed".
+  return coalesce(
+    result,
+    jsonb_build_object('byType', '{}'::jsonb, 'byPosition', '{}'::jsonb)
+  );
 end;
 $$;
 
