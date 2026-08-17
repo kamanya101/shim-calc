@@ -1,38 +1,47 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { calculateValve, inSpec } from "@/lib/calc";
-import { formatDate, mm } from "@/lib/format";
-import type { AimSettings } from "@/lib/report";
+import { formatDate, mm, signedMm } from "@/lib/format";
 import type {
-  ClearanceRange,
   EngineSpec,
   Microns,
   ServiceRecord,
+  ValvePosition,
   ValveType,
 } from "@/lib/types";
 import { Card, EmptyState } from "./ui";
 
 /**
- * One small panel per valve rather than eight series on a single axis.
+ * Every chart here plots shim thickness — the size of the metal disc — and not
+ * the gap it leaves.
  *
- * Eight lines sharing one set of axes is unreadable and forces eight hues that
- * no colourblind-safe palette can separate. Small multiples need exactly one
- * data colour, and the shaded tolerance band does the work of saying whether a
- * point is good — position against the band, not hue. Out-of-spec points are
- * additionally drawn as diamonds, so the status never rests on colour alone.
+ * Thickness is the absolute measure. A gap is reset at every service, so it saws
+ * up and down and can never add up to anything; the shim only moves when you
+ * change one, and it never moves back. So these read as staircases, and the drop
+ * from one end to the other is how far the valves have sunk into their seats — a
+ * total no single service sheet can give you.
+ *
+ * There is deliberately no shaded tolerance band. Tolerances describe the gap;
+ * there is no such thing as an out-of-spec shim thickness, and shading a band
+ * would be inventing a rule that does not exist. Whether a service was in spec
+ * is on the Sheet and the Summary, where the gaps live.
+ *
+ * One panel per valve rather than eight lines on one axis: eight lines would
+ * force eight hues that no colourblind-safe palette can separate. Small
+ * multiples need exactly one colour, so that is all this uses.
  */
 
 const DATA = "#ff9a4d";
 const W = 260;
-const H = 84;
 const PAD = { top: 10, right: 10, bottom: 16, left: 34 };
 
-type Point = {
+type ShimPoint = {
   x: number;
-  clearance: number;
+  y: Microns;
+  /** The shim that came out, or the one that went in. */
+  kind: "found" | "set";
   label: string;
-  inSpec: boolean;
+  valves: number;
 };
 
 /** Oldest first, so every chart reads left to right through time. */
@@ -49,6 +58,121 @@ function mean(values: Microns[]): Microns {
   return Math.round(values.reduce((sum, v) => sum + v, 0) / values.length);
 }
 
+/**
+ * Shim thickness across the given valves, two points per service: the shim that
+ * came out, then the one that went in. Pass one valve for its own chart, or all
+ * four of a type for the average.
+ */
+function buildShimSteps(
+  records: ServiceRecord[],
+  positions: ValvePosition[],
+): ShimPoint[] {
+  const points: ShimPoint[] = [];
+
+  orderRecords(records).forEach((record, index) => {
+    const found: Microns[] = [];
+    const set: Microns[] = [];
+
+    for (const position of positions) {
+      const reading = record.readings[position.id];
+      // Thickness only, and only where it is known. Under the gap-first
+      // workflow a valve that passed may never have had its shim pulled or
+      // measured, and there is nothing to plot for it.
+      if (reading?.shim === undefined) continue;
+      found.push(reading.shim);
+      set.push(reading.chosenShim ?? reading.shim);
+    }
+
+    /*
+     * Every valve asked for, or none. Averaging three shims one service and
+     * four the next would move the line for a reason that has nothing to do
+     * with wear — and it would look exactly like wear.
+     */
+    if (found.length !== positions.length) return;
+
+    const x = record.odometer ?? index;
+    const label = record.odometer
+      ? record.odometer.toLocaleString()
+      : formatDate(record.date);
+
+    points.push({ x, y: mean(found), kind: "found", label, valves: found.length });
+    points.push({ x, y: mean(set), kind: "set", label, valves: set.length });
+  });
+
+  return points;
+}
+
+/** How much thinner (or thicker) the shims are now than when the record starts. */
+function overallChange(points: ShimPoint[]): Microns | undefined {
+  if (points.length < 2) return undefined;
+  const change = points[points.length - 1].y - points[0].y;
+  return change === 0 ? undefined : change;
+}
+
+export function AverageDrift({
+  engine,
+  records,
+}: {
+  engine: EngineSpec;
+  records: ServiceRecord[];
+}) {
+  const series = useMemo(
+    () =>
+      (["intake", "exhaust"] as ValveType[]).map((type) => ({
+        type,
+        points: buildShimSteps(
+          records,
+          engine.positions.filter((p) => p.type === type),
+        ),
+      })),
+    [engine, records],
+  );
+
+  // Returning nothing left the heading above stranded over blank space, which
+  // reads as a broken chart rather than an empty one.
+  if (series.every((s) => s.points.length === 0)) {
+    return (
+      <EmptyState title="No shim sizes recorded yet">
+        Once a service has the thickness of all four shims entered, this will
+        chart how they have thinned out over the life of the engine.
+      </EmptyState>
+    );
+  }
+
+  return (
+    <div>
+      <p className="mb-2 text-xs leading-relaxed text-faint">
+        Average shim thickness, all four valves. Flat between services because
+        the same shims are still in there; every step is a change you made. The
+        drop from one end to the other is how far the valves have sunk.
+      </p>
+      <div className="grid gap-2.5 sm:grid-cols-2">
+        {series.map(({ type, points }) => (
+          <Card key={type} className="p-2.5">
+            {/* capitalize stays on the valve type alone — applied to the whole
+                heading it also renders the units as "Mm". */}
+            <h4 className="mb-1 flex items-baseline justify-between gap-2 text-xs font-semibold">
+              <span className="capitalize">{type}</span>
+              {overallChange(points) !== undefined && (
+                <span className="font-mono font-normal text-faint">
+                  {signedMm(overallChange(points))} mm overall
+                </span>
+              )}
+            </h4>
+            {points.length === 0 ? (
+              <p className="py-4 text-center text-[11px] text-faint">
+                no shim sizes recorded
+              </p>
+            ) : (
+              <ShimPanel points={points} label={type} height={104} />
+            )}
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function TrendChart({
   engine,
   records,
@@ -60,35 +184,20 @@ export function TrendChart({
 
   const ordered = useMemo(() => orderRecords(records), [records]);
 
-  const series = useMemo(() => {
-    return engine.positions.map((position) => {
-      const range = engine.clearance[position.type];
-      const points: Point[] = [];
-      ordered.forEach((record, index) => {
-        const clearance = record.readings[position.id]?.clearance;
-        if (clearance === undefined) return;
-        points.push({
-          // Use odometer where every record has one; otherwise fall back to
-          // service order so the chart still works for undated records.
-          x: record.odometer ?? index,
-          clearance,
-          label: record.odometer
-            ? record.odometer.toLocaleString()
-            : formatDate(record.date),
-          inSpec: inSpec(range, clearance),
-        });
-      });
-      return { position, range, points };
-    });
-  }, [engine, ordered]);
+  const series = useMemo(
+    () =>
+      engine.positions.map((position) => ({
+        position,
+        points: buildShimSteps(records, [position]),
+      })),
+    [engine, records],
+  );
 
-  const anyData = series.some((s) => s.points.length >= 2);
-
-  if (!anyData) {
+  if (series.every((s) => s.points.length === 0)) {
     return (
-      <EmptyState title="Not enough history yet">
-        Save at least two services with clearances measured and this will chart
-        how each valve is drifting.
+      <EmptyState title="No shim sizes recorded yet">
+        Enter the thickness of a shim you pulled and this will start charting it
+        valve by valve.
       </EmptyState>
     );
   }
@@ -97,8 +206,8 @@ export function TrendChart({
     <div>
       <div className="mb-2 flex items-center justify-between gap-2">
         <p className="text-xs text-faint">
-          Measured clearance over time. The shaded band is the tolerance;
-          diamonds fell outside it.
+          Thickness of the shim in each valve. Solid is what came out, hollow is
+          what went back in.
         </p>
         <button
           type="button"
@@ -113,10 +222,23 @@ export function TrendChart({
         <DataTable engine={engine} records={ordered} />
       ) : (
         <div className="grid gap-2.5 sm:grid-cols-2">
-          {series.map(({ position, range, points }) => (
+          {series.map(({ position, points }) => (
             <Card key={position.id} className="p-2.5">
-              <h4 className="mb-1 text-xs font-semibold">{position.label}</h4>
-              <Panel points={points} range={range} />
+              <h4 className="mb-1 flex items-baseline justify-between gap-2 text-xs font-semibold">
+                <span>{position.label}</span>
+                {overallChange(points) !== undefined && (
+                  <span className="font-mono font-normal text-faint">
+                    {signedMm(overallChange(points))} mm
+                  </span>
+                )}
+              </h4>
+              {points.length === 0 ? (
+                <p className="py-4 text-center text-[11px] text-faint">
+                  no shim size recorded
+                </p>
+              ) : (
+                <ShimPanel points={points} label={position.label} height={84} />
+              )}
             </Card>
           ))}
         </div>
@@ -125,136 +247,22 @@ export function TrendChart({
   );
 }
 
-type SawPoint = {
-  x: number;
-  y: Microns;
-  kind: "found" | "set";
-  label: string;
-  valves: number;
-};
-
-/**
- * The average gap across one valve type, plotted twice per service: what you
- * found when you opened it, and what it left the workshop at.
- *
- * Those two points share an odometer reading, so each service shows as a
- * vertical step and the slope between services is wear. That slope is the
- * thing you cannot get from a single service sheet, and it is the number that
- * tells you whether note 3 holds true for your engine — whether intakes really
- * do close up and exhausts really do open out.
- */
-function buildSawtooth(
-  engine: EngineSpec,
-  records: ServiceRecord[],
-  aim: AimSettings,
-  type: ValveType,
-): SawPoint[] {
-  const positions = engine.positions.filter((p) => p.type === type);
-  const range = engine.clearance[type];
-  const points: SawPoint[] = [];
-
-  orderRecords(records).forEach((record, index) => {
-    const found: Microns[] = [];
-    const set: Microns[] = [];
-
-    for (const position of positions) {
-      const reading = record.readings[position.id];
-      if (reading?.clearance === undefined) continue;
-      const result = calculateValve(reading, range, aim[type], engine.catalogues);
-      found.push(reading.clearance);
-      // A valve left alone leaves at the gap it already had, so the found
-      // value is also the set value — otherwise untouched valves would vanish
-      // from the average and make a service look better than it was.
-      set.push(result.confirmedClearance ?? result.newClearance ?? reading.clearance);
-    }
-
-    if (found.length === 0) return;
-
-    const x = record.odometer ?? index;
-    const label = record.odometer
-      ? record.odometer.toLocaleString()
-      : formatDate(record.date);
-
-    points.push({ x, y: mean(found), kind: "found", label, valves: found.length });
-    points.push({ x, y: mean(set), kind: "set", label, valves: set.length });
-  });
-
-  return points;
-}
-
-export function AverageDrift({
-  engine,
-  records,
-  aim,
-}: {
-  engine: EngineSpec;
-  records: ServiceRecord[];
-  aim: AimSettings;
-}) {
-  const series = useMemo(
-    () =>
-      (["intake", "exhaust"] as ValveType[]).map((type) => ({
-        type,
-        range: engine.clearance[type],
-        points: buildSawtooth(engine, records, aim, type),
-      })),
-    [engine, records, aim],
-  );
-
-  // Returning nothing left the heading above stranded over blank space, which
-  // reads as a broken chart rather than an empty one.
-  if (series.every((s) => s.points.length === 0)) {
-    return (
-      <EmptyState title="Nothing measured yet">
-        Enter some clearances on the Sheet and this will chart how far each
-        service drifted, averaged across the intakes and the exhausts.
-      </EmptyState>
-    );
-  }
-
-  return (
-    <div>
-      <p className="mb-2 text-xs leading-relaxed text-faint">
-        Average of all four valves. Each service steps from the gap you found
-        down or up to the gap you set; the slope between services is the wear.
-      </p>
-      <div className="grid gap-2.5 sm:grid-cols-2">
-        {series.map(({ type, range, points }) => (
-          <Card key={type} className="p-2.5">
-            {/* capitalize stays on the valve type alone — applied to the whole
-                heading it also renders the units as "Mm". */}
-            <h4 className="mb-1 text-xs font-semibold">
-              <span className="capitalize">{type}</span>{" "}
-              <span className="font-mono font-normal text-faint">
-                {mm(range.min)}–{mm(range.max)} mm
-              </span>
-            </h4>
-            {points.length === 0 ? (
-              <p className="py-4 text-center text-[11px] text-faint">no readings</p>
-            ) : (
-              <SawtoothPanel points={points} range={range} type={type} />
-            )}
-          </Card>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function SawtoothPanel({
+function ShimPanel({
   points,
-  range,
-  type,
+  label,
+  height,
 }: {
-  points: SawPoint[];
-  range: ClearanceRange;
-  type: ValveType;
+  points: ShimPoint[];
+  label: string;
+  height: number;
 }) {
-  const H2 = 104;
   const values = points.map((p) => p.y);
-  const lo = Math.min(range.min, ...values);
-  const hi = Math.max(range.max, ...values);
-  const padY = Math.max(10, (hi - lo) * 0.15);
+  // Scaled to the shims themselves. There is no band to keep in frame, and the
+  // whole point is to see a change of a few hundredths, so a scale wide enough
+  // for every engine would flatten every one of them to a straight line.
+  const lo = Math.min(...values);
+  const hi = Math.max(...values);
+  const padY = Math.max(25, (hi - lo) * 0.25);
   const yMin = lo - padY;
   const yMax = hi + padY;
 
@@ -263,7 +271,7 @@ function SawtoothPanel({
   const xMax = Math.max(...xs);
 
   const plotW = W - PAD.left - PAD.right;
-  const plotH = H2 - PAD.top - PAD.bottom;
+  const plotH = height - PAD.top - PAD.bottom;
 
   const sx = (x: number) =>
     PAD.left + (xMax === xMin ? plotW / 2 : ((x - xMin) / (xMax - xMin)) * plotW);
@@ -278,20 +286,14 @@ function SawtoothPanel({
 
   return (
     <svg
-      viewBox={`0 0 ${W} ${H2}`}
+      viewBox={`0 0 ${W} ${height}`}
       className="w-full"
       role="img"
-      aria-label={`Average ${type} gap over ${points.length / 2} services, ending at ${mm(last.y)} mm; tolerance ${mm(range.min)} to ${mm(range.max)} mm`}
+      aria-label={`${label} shim thickness over ${points.length / 2} services, from ${mm(points[0].y)} to ${mm(last.y)} mm`}
     >
-      <rect
-        x={PAD.left}
-        y={sy(range.max)}
-        width={plotW}
-        height={Math.max(1, sy(range.min) - sy(range.max))}
-        fill="#98a0aa"
-        opacity={0.14}
-      />
-      {[range.max, range.min].map((edge) => (
+      {/* Thickest and thinnest actually recorded, so the axis states the real
+          range rather than a tolerance that does not apply to a shim. */}
+      {[hi, lo].map((edge) => (
         <line
           key={edge}
           x1={PAD.left}
@@ -301,15 +303,17 @@ function SawtoothPanel({
           stroke="#98a0aa"
           strokeWidth={1}
           strokeDasharray="3 3"
-          opacity={0.5}
+          opacity={0.35}
         />
       ))}
-      <text x={2} y={sy(range.max) + 3} fontSize={8} fill="#6b727c">
-        {mm(range.max)}
+      <text x={2} y={sy(hi) + 3} fontSize={8} fill="#6b727c">
+        {mm(hi)}
       </text>
-      <text x={2} y={sy(range.min) + 3} fontSize={8} fill="#6b727c">
-        {mm(range.min)}
-      </text>
+      {hi !== lo && (
+        <text x={2} y={sy(lo) + 3} fontSize={8} fill="#6b727c">
+          {mm(lo)}
+        </text>
+      )}
 
       <path d={path} fill="none" stroke={DATA} strokeWidth={2} strokeLinejoin="round" />
 
@@ -318,8 +322,8 @@ function SawtoothPanel({
           {p.kind === "found" ? (
             <circle cx={sx(p.x)} cy={sy(p.y)} r={4} fill={DATA} stroke="#16181c" strokeWidth={2} />
           ) : (
-            // Hollow for "set" — shape, not colour, separates the two, so it
-            // survives colourblindness and a greyscale printout.
+            // Hollow for the shim that went in — shape, not colour, separates
+            // the two, so it survives colourblindness and a greyscale printout.
             <circle
               cx={sx(p.x)}
               cy={sy(p.y)}
@@ -330,11 +334,12 @@ function SawtoothPanel({
             />
           )}
           <title>
-            {`${p.label} — ${p.kind === "found" ? "found" : "set"} ${mm(p.y)} mm (mean of ${p.valves})`}
+            {`${p.label} — shim ${p.kind === "found" ? "that came out" : "that went in"} ${mm(p.y)} mm${p.valves > 1 ? ` (mean of ${p.valves})` : ""}`}
           </title>
         </g>
       ))}
 
+      {/* Direct-label the newest reading only, never every point. */}
       <text
         x={Math.min(sx(last.x) + 7, W - 2)}
         y={sy(last.y) - 6}
@@ -346,149 +351,17 @@ function SawtoothPanel({
         {mm(last.y)}
       </text>
 
-      <text x={PAD.left} y={H2 - 3} fontSize={8} fill="#6b727c">
+      <text x={PAD.left} y={height - 3} fontSize={8} fill="#6b727c">
         {points[0].label}
       </text>
       {xMax !== xMin && (
-        <text x={PAD.left + plotW} y={H2 - 3} fontSize={8} fill="#6b727c" textAnchor="end">
-          {last.label}
-        </text>
-      )}
-    </svg>
-  );
-}
-
-function Panel({
-  points,
-  range,
-}: {
-  points: Point[];
-  range: ClearanceRange;
-}) {
-  if (points.length === 0) {
-    return <p className="py-4 text-center text-[11px] text-faint">no readings</p>;
-  }
-
-  const values = points.map((p) => p.clearance);
-  // Always show the whole tolerance band plus a little air, so panels for the
-  // same valve type share a comparable scale.
-  const lo = Math.min(range.min, ...values);
-  const hi = Math.max(range.max, ...values);
-  const padY = Math.max(10, (hi - lo) * 0.15);
-  const yMin = lo - padY;
-  const yMax = hi + padY;
-
-  const xs = points.map((p) => p.x);
-  const xMin = Math.min(...xs);
-  const xMax = Math.max(...xs);
-
-  const plotW = W - PAD.left - PAD.right;
-  const plotH = H - PAD.top - PAD.bottom;
-
-  const sx = (x: number) =>
-    PAD.left + (xMax === xMin ? plotW / 2 : ((x - xMin) / (xMax - xMin)) * plotW);
-  const sy = (y: number) =>
-    PAD.top + plotH - ((y - yMin) / (yMax - yMin)) * plotH;
-
-  const path = points
-    .map((p, i) => `${i === 0 ? "M" : "L"}${sx(p.x).toFixed(1)},${sy(p.clearance).toFixed(1)}`)
-    .join(" ");
-
-  const last = points[points.length - 1];
-
-  return (
-    <svg
-      viewBox={`0 0 ${W} ${H}`}
-      className="w-full"
-      role="img"
-      aria-label={`Clearance from ${mm(points[0].clearance)} to ${mm(last.clearance)} mm; tolerance ${mm(range.min)} to ${mm(range.max)} mm`}
-    >
-      {/* Tolerance band — the reference region every point is judged against. */}
-      <rect
-        x={PAD.left}
-        y={sy(range.max)}
-        width={plotW}
-        height={Math.max(1, sy(range.min) - sy(range.max))}
-        fill="#98a0aa"
-        opacity={0.14}
-      />
-      <line
-        x1={PAD.left}
-        x2={PAD.left + plotW}
-        y1={sy(range.max)}
-        y2={sy(range.max)}
-        stroke="#98a0aa"
-        strokeWidth={1}
-        strokeDasharray="3 3"
-        opacity={0.5}
-      />
-      <line
-        x1={PAD.left}
-        x2={PAD.left + plotW}
-        y1={sy(range.min)}
-        y2={sy(range.min)}
-        stroke="#98a0aa"
-        strokeWidth={1}
-        strokeDasharray="3 3"
-        opacity={0.5}
-      />
-
-      <text x={2} y={sy(range.max) + 3} fontSize={8} fill="#6b727c">
-        {mm(range.max)}
-      </text>
-      <text x={2} y={sy(range.min) + 3} fontSize={8} fill="#6b727c">
-        {mm(range.min)}
-      </text>
-
-      {points.length > 1 && (
-        <path d={path} fill="none" stroke={DATA} strokeWidth={2} strokeLinejoin="round" />
-      )}
-
-      {points.map((p, i) => {
-        const cx = sx(p.x);
-        const cy = sy(p.clearance);
-        return (
-          <g key={i}>
-            {p.inSpec ? (
-              <circle cx={cx} cy={cy} r={4} fill={DATA} stroke="#16181c" strokeWidth={2} />
-            ) : (
-              // Diamond: shape carries the status so it survives colourblindness,
-              // greyscale printing and forced-colors mode.
-              <rect
-                x={cx - 4.5}
-                y={cy - 4.5}
-                width={9}
-                height={9}
-                transform={`rotate(45 ${cx} ${cy})`}
-                fill={DATA}
-                stroke="#16181c"
-                strokeWidth={2}
-              />
-            )}
-            <title>
-              {`${p.label}: ${mm(p.clearance)} mm${p.inSpec ? "" : " — out of spec"}`}
-            </title>
-          </g>
-        );
-      })}
-
-      {/* Direct-label the newest reading only, never every point. */}
-      <text
-        x={Math.min(sx(last.x) + 7, W - 2)}
-        y={sy(last.clearance) - 6}
-        fontSize={9}
-        fontWeight={700}
-        fill="#e9ebee"
-        textAnchor={sx(last.x) > W - 46 ? "end" : "start"}
-      >
-        {mm(last.clearance)}
-      </text>
-
-      <text x={PAD.left} y={H - 3} fontSize={8} fill="#6b727c">
-        {points[0].label}
-      </text>
-      {points.length > 1 && (
-        <text x={PAD.left + plotW} y={H - 3} fontSize={8} fill="#6b727c" textAnchor="end">
+        <text
+          x={PAD.left + plotW}
+          y={height - 3}
+          fontSize={8}
+          fill="#6b727c"
+          textAnchor="end"
+        >
           {last.label}
         </text>
       )}
@@ -507,7 +380,7 @@ function DataTable({
     <div className="overflow-x-auto rounded-xl border border-line">
       <table className="w-full min-w-[34rem] text-left text-xs">
         <caption className="sr-only">
-          Measured valve clearance in millimetres for each service
+          Thickness in millimetres of the shim found in each valve, by service
         </caption>
         <thead>
           <tr className="border-b border-line bg-raised/50">
@@ -528,35 +401,28 @@ function DataTable({
           </tr>
         </thead>
         <tbody className="divide-y divide-line">
-          {engine.positions.map((position) => {
-            const range = engine.clearance[position.type];
-            return (
-              <tr key={position.id}>
-                <th scope="row" className="px-2.5 py-1.5 font-medium text-muted">
-                  {position.label}
-                </th>
-                {records.map((record) => {
-                  const value = record.readings[position.id]?.clearance;
-                  const ok = value !== undefined && inSpec(range, value);
-                  return (
-                    <td
-                      key={record.id}
-                      className="px-2.5 py-1.5 text-right font-mono tabular-nums"
-                    >
-                      {value === undefined ? (
-                        <span className="text-faint">—</span>
-                      ) : (
-                        <span className={ok ? "" : "font-bold"}>
-                          {mm(value)}
-                          {!ok && <span className="ml-1 text-bad">!</span>}
-                        </span>
-                      )}
-                    </td>
-                  );
-                })}
-              </tr>
-            );
-          })}
+          {engine.positions.map((position) => (
+            <tr key={position.id}>
+              <th scope="row" className="px-2.5 py-1.5 font-medium text-muted">
+                {position.label}
+              </th>
+              {records.map((record) => {
+                const shim = record.readings[position.id]?.shim;
+                return (
+                  <td
+                    key={record.id}
+                    className="px-2.5 py-1.5 text-right font-mono tabular-nums"
+                  >
+                    {shim === undefined ? (
+                      <span className="text-faint">—</span>
+                    ) : (
+                      mm(shim)
+                    )}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>

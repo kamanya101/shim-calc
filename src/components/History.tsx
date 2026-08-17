@@ -62,10 +62,10 @@ export function History() {
         of services is the archive you dig into afterwards, and on a phone it
         was pushing the graphs below the fold entirely.
       */}
-      <h2 className="mb-2 text-sm font-bold">Average drift</h2>
-      <AverageDrift engine={engine} records={records} aim={aim} />
+      <h2 className="mb-2 text-sm font-bold">Shim thickness over time</h2>
+      <AverageDrift engine={engine} records={records} />
 
-      <h2 className="mt-6 mb-2 text-sm font-bold">Wear over time, valve by valve</h2>
+      <h2 className="mt-6 mb-2 text-sm font-bold">Shim thickness, valve by valve</h2>
       <TrendChart engine={engine} records={records} />
 
       <h2 className="mt-6 mb-2 text-sm font-bold">Services</h2>
