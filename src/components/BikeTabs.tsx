@@ -1,5 +1,6 @@
 "use client";
 
+import { modelLabel } from "@/lib/models";
 import { useRecords } from "./RecordsProvider";
 
 /**
@@ -39,13 +40,13 @@ export function BikeTabs() {
               }`}
             >
               {b.name}
-              {b.model && (
+              {modelLabel(b.modelId, b.year) && (
                 // Real space, not a margin — a margin looks right but copies
                 // and reads aloud as "Old Beast950 Adventure".
                 <>
                   {" "}
                   <span className="text-[11px] font-normal opacity-70">
-                    {b.model}
+                    {modelLabel(b.modelId, b.year)}
                   </span>
                 </>
               )}

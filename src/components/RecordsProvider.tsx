@@ -4,25 +4,32 @@ import { createContext, useCallback, useContext, useMemo, useState } from "react
 import type { Aim } from "@/lib/calc";
 import { DEFAULT_ENGINE_ID, getEngine } from "@/lib/engines";
 import { runMigrations } from "@/lib/migrations";
-import { DEFAULT_AIM_SETTINGS, type AimSettings } from "@/lib/report";
-import { createLocalStore, useHydrated, useLocalStore } from "@/lib/store";
+import { type AimSettings } from "@/lib/report";
+import { useHydrated, useLocalStore } from "@/lib/store";
 import {
-  ACTIVE_BIKE_KEY,
-  ACTIVE_KEY,
-  BIKES_KEY,
-  RECORDS_KEY,
+  activeBikeStore,
+  activeStore,
+  aimStore,
+  bikesStore,
+  recordsStore,
+} from "@/lib/stores";
+import {
+  buildExport,
+  deleteBike,
   deleteRecord,
+  liveBikes,
+  liveRecords,
   mergeImport,
   newBike,
   newRecord,
   recordsForBike,
   sortRecords,
+  upsertBike,
   upsertRecord,
+  type ExportBundle,
   type ImportResult,
 } from "@/lib/storage";
 import type { Bike, EngineSpec, ServiceRecord, ValveType } from "@/lib/types";
-
-const AIM_KEY = "shim-calc/aim/v1";
 
 /**
  * Identities for the empty state, so "no data yet" is one stable bike and one
@@ -35,34 +42,6 @@ const DRAFT_RECORD_ID = "draft";
 // Before any store is read. An upgrade must never cost somebody their history.
 runMigrations();
 
-const EMPTY_RECORDS: ServiceRecord[] = [];
-const EMPTY_BIKES: Bike[] = [];
-
-const recordsStore = createLocalStore<ServiceRecord[]>(
-  RECORDS_KEY,
-  EMPTY_RECORDS,
-  (raw) => (Array.isArray(raw) ? (raw as ServiceRecord[]) : null),
-);
-
-const bikesStore = createLocalStore<Bike[]>(BIKES_KEY, EMPTY_BIKES, (raw) =>
-  Array.isArray(raw) ? (raw as Bike[]) : null,
-);
-
-const activeStore = createLocalStore<string | null>(ACTIVE_KEY, null, (raw) =>
-  typeof raw === "string" ? raw : null,
-);
-
-const activeBikeStore = createLocalStore<string | null>(
-  ACTIVE_BIKE_KEY,
-  null,
-  (raw) => (typeof raw === "string" ? raw : null),
-);
-
-const aimStore = createLocalStore<AimSettings>(AIM_KEY, DEFAULT_AIM_SETTINGS, (raw) => {
-  const value = raw as AimSettings | null;
-  return value?.intake && value?.exhaust ? value : null;
-});
-
 type RecordsContext = {
   /** False during server render and hydration — nothing data-driven paints yet. */
   ready: boolean;
@@ -71,7 +50,7 @@ type RecordsContext = {
   bike: Bike;
   /** Services for the selected bike only. */
   records: ServiceRecord[];
-  /** Every service across every bike — for backups, which must be complete. */
+  /** Every service across every bike, deleted ones excluded. */
   allRecords: ServiceRecord[];
   active: ServiceRecord;
   aim: AimSettings;
@@ -86,6 +65,13 @@ type RecordsContext = {
   duplicateAsNew: (id: string) => void;
   remove: (id: string) => void;
   importJson: (raw: string) => ImportResult;
+  /**
+   * A complete backup, deletion markers included. A function rather than a
+   * value so no screen can accidentally export the display lists, which have
+   * the markers filtered out — importing that file would resurrect everything
+   * ever deleted.
+   */
+  exportBundle: () => ExportBundle;
 };
 
 const Ctx = createContext<RecordsContext | null>(null);
@@ -98,11 +84,20 @@ export function useRecords(): RecordsContext {
 
 export function RecordsProvider({ children }: { children: React.ReactNode }) {
   const ready = useHydrated();
-  const allRecords = useLocalStore(recordsStore);
-  const bikes = useLocalStore(bikesStore);
+
+  /**
+   * The stores hold deleted rows as markers, because sync needs them. Nothing
+   * on screen ever should, so the raw arrays stay in this file: edits are
+   * applied to them, and everything handed out is filtered.
+   */
+  const rawRecords = useLocalStore(recordsStore);
+  const rawBikes = useLocalStore(bikesStore);
   const activeId = useLocalStore(activeStore);
   const activeBikeId = useLocalStore(activeBikeStore);
   const aim = useLocalStore(aimStore);
+
+  const allRecords = useMemo(() => liveRecords(rawRecords), [rawRecords]);
+  const bikes = useMemo(() => liveBikes(rawBikes), [rawBikes]);
 
   // Never mutated — every edit produces new objects — so a deleted draft comes
   // back blank rather than carrying the old readings.
@@ -136,32 +131,27 @@ export function RecordsProvider({ children }: { children: React.ReactNode }) {
   /** Persist the draft bike alongside whatever else is being written. */
   const ensureBike = useCallback((): Bike => {
     if (bikes.some((b) => b.id === bike.id)) return bike;
-    bikesStore.set([...bikes, bike]);
+    bikesStore.set([...rawBikes, bike]);
     activeBikeStore.set(bike.id);
     return bike;
-  }, [bikes, bike]);
+  }, [bikes, rawBikes, bike]);
 
   const updateActive = useCallback(
     (patch: (record: ServiceRecord) => ServiceRecord) => {
       ensureBike();
       const next = patch(active);
-      recordsStore.set(upsertRecord(allRecords, next));
+      recordsStore.set(upsertRecord(rawRecords, next));
       if (activeId !== next.id) activeStore.set(next.id);
     },
-    [allRecords, active, activeId, ensureBike],
+    [rawRecords, active, activeId, ensureBike],
   );
 
   const updateBike = useCallback(
     (patch: Partial<Omit<Bike, "id">>) => {
       const current = ensureBike();
-      const next = { ...current, ...patch };
-      bikesStore.set(
-        bikes.some((b) => b.id === next.id)
-          ? bikes.map((b) => (b.id === next.id ? next : b))
-          : [...bikes, next],
-      );
+      bikesStore.set(upsertBike(bikesStore.get(), { ...current, ...patch }));
     },
-    [bikes, ensureBike],
+    [ensureBike],
   );
 
   const addBike = useCallback(() => {
@@ -174,15 +164,15 @@ export function RecordsProvider({ children }: { children: React.ReactNode }) {
 
   const removeBike = useCallback(
     (id: string) => {
-      const remaining = bikes.filter((b) => b.id !== id);
-      bikesStore.set(remaining);
-      recordsStore.set(allRecords.filter((r) => r.bikeId !== id));
+      const next = deleteBike(rawBikes, rawRecords, id);
+      bikesStore.set(next.bikes);
+      recordsStore.set(next.records);
       if (id === bike.id) {
-        activeBikeStore.set(remaining[0]?.id ?? null);
+        activeBikeStore.set(liveBikes(next.bikes)[0]?.id ?? null);
         activeStore.set("");
       }
     },
-    [bikes, allRecords, bike.id],
+    [rawBikes, rawRecords, bike.id],
   );
 
   const startNew = useCallback(() => {
@@ -214,37 +204,42 @@ export function RecordsProvider({ children }: { children: React.ReactNode }) {
         }
         record.odometer = source.odometer;
       }
-      recordsStore.set([record, ...allRecords]);
+      recordsStore.set([record, ...rawRecords]);
       activeStore.set(record.id);
     },
-    [allRecords, ensureBike],
+    [allRecords, rawRecords, ensureBike],
   );
 
   const remove = useCallback(
     (id: string) => {
-      const next = deleteRecord(allRecords, id);
+      const next = deleteRecord(rawRecords, id);
       recordsStore.set(next);
       if (id === activeId) {
         const forBike = sortRecords(recordsForBike(next, bike.id));
         activeStore.set(forBike[0]?.id ?? "");
       }
     },
-    [allRecords, activeId, bike.id],
+    [rawRecords, activeId, bike.id],
   );
 
   const importJson = useCallback(
     (raw: string): ImportResult => {
-      const result = mergeImport(bikes, allRecords, raw, DEFAULT_ENGINE_ID);
+      const result = mergeImport(rawBikes, rawRecords, raw, DEFAULT_ENGINE_ID);
       if (result.ok) {
         bikesStore.set(result.bikes);
         recordsStore.set(result.records);
-        if (!activeBikeId && result.bikes.length) {
-          activeBikeStore.set(result.bikes[0].id);
+        if (!activeBikeId && liveBikes(result.bikes).length) {
+          activeBikeStore.set(liveBikes(result.bikes)[0].id);
         }
       }
       return result;
     },
-    [bikes, allRecords, activeBikeId],
+    [rawBikes, rawRecords, activeBikeId],
+  );
+
+  const exportBundle = useCallback(
+    () => buildExport(bikesStore.get(), recordsStore.get()),
+    [],
   );
 
   const setAim = useCallback(
@@ -274,6 +269,7 @@ export function RecordsProvider({ children }: { children: React.ReactNode }) {
     duplicateAsNew,
     remove,
     importJson,
+    exportBundle,
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

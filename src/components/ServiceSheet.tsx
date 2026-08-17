@@ -5,7 +5,7 @@ import { APP_NAME } from "@/lib/app";
 import type { Aim } from "@/lib/calc";
 import { groupsByBank } from "@/lib/engines";
 import { mm, todayIso } from "@/lib/format";
-import { BIKE_MODEL_GROUPS } from "@/lib/models";
+import { BIKE_MODEL_GROUPS, MODEL_YEARS, modelLabel } from "@/lib/models";
 import { sheetStatus } from "@/lib/report";
 import type { ValveType } from "@/lib/types";
 import { useRecords } from "./RecordsProvider";
@@ -47,7 +47,10 @@ export function ServiceSheet() {
     <div className="mx-auto max-w-3xl px-4 py-5">
       <PageHeader
         title={APP_NAME}
-        subtitle={[bike.model, `${engine.name} · ${engine.subtitle}`]
+        subtitle={[
+          modelLabel(bike.modelId, bike.year),
+          `${engine.name} · ${engine.subtitle}`,
+        ]
           .filter(Boolean)
           .join(" · ")}
         action={
@@ -58,32 +61,42 @@ export function ServiceSheet() {
       />
 
       <Card className="mb-3 p-3">
-        <div className="mb-2.5 flex items-end gap-2">
-          <div className="min-w-0 flex-1">
-            <Field label="Bike">
+        {/*
+          Stacked on a phone held upright, one row from 640px up — which
+          includes a phone in landscape, where the three saved rows matter most:
+          there is barely 250px of usable height once the browser chrome and the
+          tab bar have taken their share.
+        */}
+        <div className="grid gap-2.5 sm:grid-cols-3">
+          <Field label="Bike">
+            <div className="flex items-stretch gap-1.5">
               <select
                 value={bike.id}
                 onChange={(e) => setActiveBikeId(e.target.value)}
-                className="w-full rounded-lg border border-line bg-bg px-2.5 py-2 text-sm text-ink outline-none focus:border-accent"
+                className="min-w-0 flex-1 rounded-lg border border-line bg-bg px-2.5 py-2 text-sm text-ink outline-none focus:border-accent"
               >
                 {bikes.map((b) => (
                   <option key={b.id} value={b.id}>
                     {b.name}
-                    {b.model ? ` — ${b.model}` : ""}
+                    {modelLabel(b.modelId, b.year)
+                      ? ` — ${modelLabel(b.modelId, b.year)}`
+                      : ""}
                   </option>
                 ))}
               </select>
-            </Field>
-          </div>
-          <Button onClick={addBike} className="shrink-0">
-            Add
-          </Button>
-        </div>
+              <button
+                type="button"
+                onClick={addBike}
+                aria-label="Add another bike"
+                title="Add another bike"
+                className="shrink-0 rounded-lg bg-raised px-3 text-lg font-bold leading-none text-ink ring-1 ring-line transition-colors hover:bg-line"
+              >
+                +
+              </button>
+            </div>
+          </Field>
 
-        {/* Full width rather than half: the label earns its keep by explaining
-            what the field is for, and it needs the room to read as a sentence. */}
-        <div className="mb-2.5">
-          <Field label="Name (Unique to this bike… for those who are greedy/wise and have more than one)">
+          <Field label="Name">
             <input
               type="text"
               placeholder="e.g. Orange one"
@@ -92,28 +105,53 @@ export function ServiceSheet() {
               className="w-full rounded-lg border border-line bg-bg px-2.5 py-2 text-sm text-ink outline-none placeholder:text-faint/50 focus:border-accent"
             />
           </Field>
-        </div>
 
-        <div>
           <Field label="Model">
             <select
-              value={bike.model ?? ""}
-              onChange={(e) => updateBike({ model: e.target.value || undefined })}
+              value={bike.modelId ?? ""}
+              onChange={(e) => updateBike({ modelId: e.target.value || undefined })}
               className="w-full rounded-lg border border-line bg-bg px-2.5 py-2 text-sm text-ink outline-none focus:border-accent"
             >
               <option value="">Choose…</option>
               {BIKE_MODEL_GROUPS.map((group) => (
                 <optgroup key={group.label} label={group.label}>
                   {group.models.map((model) => (
-                    <option key={model} value={model}>
-                      {model}
+                    <option key={model.id} value={model.id}>
+                      {model.name}
                     </option>
                   ))}
                 </optgroup>
               ))}
             </select>
           </Field>
+
+          <Field label="Year">
+            <select
+              value={bike.year ?? ""}
+              onChange={(e) =>
+                updateBike({ year: e.target.value ? Number(e.target.value) : undefined })
+              }
+              className="w-full rounded-lg border border-line bg-bg px-2.5 py-2 text-sm text-ink outline-none focus:border-accent"
+            >
+              {/* Optional, and says so: plenty of people do not know the year
+                  of a bike they bought second-hand, and refusing their service
+                  history over it would be a poor trade. */}
+              <option value="">Not sure</option>
+              {MODEL_YEARS.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </select>
+          </Field>
         </div>
+
+        {/* Out of the label so the three columns sit level; prefixed so it is
+            still obvious which field it belongs to. */}
+        <p className="mt-2 text-[11px] leading-relaxed text-faint">
+          Name — unique to this bike… for those who are greedy/wise and have more
+          than one
+        </p>
 
         {bikes.length > 1 && (
           <button

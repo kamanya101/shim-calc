@@ -1,6 +1,7 @@
 "use client";
 
 import { formatDate, formatOdometer, mm, signedMm } from "@/lib/format";
+import { modelLabel } from "@/lib/models";
 import { buildSummary, recordToCsv, suggestFilename, type SummaryRow } from "@/lib/report";
 import { downloadFile } from "@/lib/storage";
 import { useRecords } from "./RecordsProvider";
@@ -27,7 +28,9 @@ export function Summary() {
       <PageHeader
         title="Summary"
         subtitle={[
-          bike.model ? `${bike.name} · ${bike.model}` : bike.name,
+          modelLabel(bike.modelId, bike.year)
+            ? `${bike.name} · ${modelLabel(bike.modelId, bike.year)}`
+            : bike.name,
           formatDate(active.date),
           active.odometer !== undefined ? formatOdometer(active.odometer) : null,
           active.title,

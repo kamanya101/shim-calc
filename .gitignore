@@ -32,6 +32,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -42,3 +43,10 @@ next-env.d.ts
 
 # OneDrive drops these into synced folders, including .git
 desktop.ini
+
+.vercel
+.env*
+# Re-stated after the block the Vercel CLI appended: its blanket `.env*` came
+# after the earlier exception and put the (empty) example file back on the
+# ignore list. Last match wins, so the exception has to come last.
+!.env.example

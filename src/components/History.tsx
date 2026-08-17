@@ -4,7 +4,8 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatDate, formatOdometer } from "@/lib/format";
 import { sheetStatus } from "@/lib/report";
-import { buildExport, downloadFile, sortRecords } from "@/lib/storage";
+import { downloadFile, sortRecords } from "@/lib/storage";
+import { AccountCard } from "./AccountCard";
 import { BikeTabs } from "./BikeTabs";
 import { useRecords } from "./RecordsProvider";
 import { AverageDrift, TrendChart } from "./TrendChart";
@@ -18,13 +19,13 @@ export function History() {
     bike,
     bikes,
     records,
-    allRecords,
     active,
     aim,
     setActiveId,
     remove,
     duplicateAsNew,
     importJson,
+    exportBundle,
   } = useRecords();
   const fileInput = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -55,7 +56,19 @@ export function History() {
 
       <BikeTabs />
 
-      <div className="mb-5 space-y-2">
+      {/*
+        Charts first. The trend is what you come to this page to read; the list
+        of services is the archive you dig into afterwards, and on a phone it
+        was pushing the graphs below the fold entirely.
+      */}
+      <h2 className="mb-2 text-sm font-bold">Average drift</h2>
+      <AverageDrift engine={engine} records={records} aim={aim} />
+
+      <h2 className="mt-6 mb-2 text-sm font-bold">Wear over time, valve by valve</h2>
+      <TrendChart engine={engine} records={records} />
+
+      <h2 className="mt-6 mb-2 text-sm font-bold">Services</h2>
+      <div className="space-y-2">
         {sorted.map((record) => {
           const status = sheetStatus(engine, record, aim);
           const isActive = record.id === active.id;
@@ -130,24 +143,20 @@ export function History() {
         })}
       </div>
 
-      <h2 className="mb-2 text-sm font-bold">Average drift</h2>
-      <AverageDrift engine={engine} records={records} aim={aim} />
-
-      <h2 className="mt-6 mb-2 text-sm font-bold">Wear over time, valve by valve</h2>
-      <TrendChart engine={engine} records={records} />
+      <h2 className="mt-6 mb-2 text-sm font-bold">Account</h2>
+      <AccountCard />
 
       <h2 className="mt-6 mb-2 text-sm font-bold">Backup</h2>
       <p className="mb-2 text-xs leading-relaxed text-faint">
-        Records live in this browser only — clearing site data or losing the
-        phone loses them. Export now and again, and keep the file somewhere
-        safe.
+        Your services are on this device and on the server under your account.
+        An export is the copy that depends on neither — keep one somewhere safe.
       </p>
       <div className="flex flex-wrap gap-2">
         <Button
           onClick={() =>
             downloadFile(
               `shim-calc-backup-${new Date().toISOString().slice(0, 10)}.json`,
-              JSON.stringify(buildExport(bikes, allRecords), null, 2),
+              JSON.stringify(exportBundle(), null, 2),
               "application/json",
             )
           }

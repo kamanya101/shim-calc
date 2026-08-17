@@ -1,6 +1,7 @@
 "use client";
 
 import { DEFAULT_ENGINE_ID } from "./engines";
+import { LEGACY_MODEL_NAMES } from "./models";
 import {
   ACTIVE_BIKE_KEY,
   BIKES_KEY,
@@ -33,6 +34,8 @@ export function runMigrations(): void {
 
   try {
     if (version < 2) migrateToBikes();
+    if (version < 3) migrateToSyncable();
+    if (version < 4) migrateToModelIds();
     window.localStorage.setItem(SCHEMA_KEY, String(SCHEMA_VERSION));
   } catch {
     // A failed migration must not take the app down with it. Leaving the
@@ -64,16 +67,16 @@ function migrateToBikes(): void {
   const bikes: Bike[] = [...existingBikes];
   const byModel = new Map<string, Bike>();
 
-  for (const bike of bikes) byModel.set(bike.model ?? "", bike);
+  for (const bike of bikes) byModel.set(bike.modelId ?? "", bike);
 
   const migrated = records.map((record) => {
     if (record.bikeId) return record;
 
     const model = record.model;
-    const key = model ?? "";
+    const key = LEGACY_MODEL_NAMES[model ?? ""] ?? "";
     let bike = byModel.get(key);
     if (!bike) {
-      bike = newBike(record.engineId ?? DEFAULT_ENGINE_ID, model ?? "My LC8", model);
+      bike = newBike(record.engineId ?? DEFAULT_ENGINE_ID, model ?? "My LC8", key || undefined);
       byModel.set(key, bike);
       bikes.push(bike);
     }
@@ -89,6 +92,54 @@ function migrateToBikes(): void {
   if (bikes.length > 0 && !window.localStorage.getItem(ACTIVE_BIKE_KEY)) {
     window.localStorage.setItem(ACTIVE_BIKE_KEY, JSON.stringify(bikes[0].id));
   }
+}
+
+/**
+ * Version 3 is the one that makes the data syncable.
+ *
+ * Bikes gained an `updatedAt`, because reconciling two devices means asking
+ * which copy was touched last and a bike previously could not answer. Anything
+ * already stored is stamped with its creation time — it has not been edited
+ * since, as far as anyone can tell, and dating it earlier than any subsequent
+ * change is the safe direction to be wrong in.
+ *
+ * Deletion markers need no migration: no marker means not deleted, which is
+ * true of everything written before this version.
+ */
+function migrateToSyncable(): void {
+  const bikes = readBikes();
+  if (bikes.length === 0) return;
+
+  const stamped = bikes.map((bike) =>
+    bike.updatedAt ? bike : { ...bike, updatedAt: bike.createdAt },
+  );
+  window.localStorage.setItem(BIKES_KEY, JSON.stringify(stamped));
+}
+
+/**
+ * Version 4 swapped the printed model name on a bike for a permanent id, so
+ * that rewording an entry in the model list can never split one model into two
+ * in the shared averages. See models.ts.
+ *
+ * A name that is not on the list resolves to no model at all rather than being
+ * carried across as an invented id — better an empty field the rider can fill
+ * in from a dropdown than a value nothing else will ever match.
+ */
+function migrateToModelIds(): void {
+  const bikes = readBikes() as (Bike & { model?: string })[];
+  if (bikes.length === 0) return;
+
+  const migrated = bikes.map((bike) => {
+    if (!("model" in bike)) return bike;
+    const next: Bike & { model?: string } = {
+      ...bike,
+      modelId: bike.modelId ?? LEGACY_MODEL_NAMES[bike.model ?? ""],
+    };
+    delete next.model;
+    return next;
+  });
+
+  window.localStorage.setItem(BIKES_KEY, JSON.stringify(migrated));
 }
 
 function readBikes(): Bike[] {

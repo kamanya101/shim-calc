@@ -89,10 +89,22 @@ export type Bike = {
   id: string;
   /** "Orange one", "The Dakar". Defaults to the model. */
   name: string;
-  /** Which LC8, e.g. "990 Adventure R". Record-keeping only, not a spec. */
-  model?: string;
+  /**
+   * Which LC8, as a permanent id from models.ts — never the printed name.
+   * Record-keeping for the rider; the grouping key for the shared averages.
+   */
+  modelId?: string;
+  /**
+   * Model year, from the production run only. Optional, because plenty of
+   * people genuinely do not know it and refusing their service history over a
+   * date would be a poor trade.
+   */
+  year?: number;
   engineId: string;
   createdAt: string;
+  /** Bumped on every edit. Two devices reconcile by keeping the later one. */
+  updatedAt: string;
+  deletedAt?: string;
 };
 
 export type ServiceRecord = {
@@ -106,4 +118,17 @@ export type ServiceRecord = {
   readings: Record<string, ValveReading>;
   createdAt: string;
   updatedAt: string;
+  /**
+   * A deleted service is kept as a marker rather than removed outright.
+   *
+   * Sync reconciles two copies by keeping whichever was touched last, and that
+   * only works for things that still exist. Drop a row on the phone and the
+   * tablet's copy — which knows nothing of the deletion — would simply put it
+   * back on the next sync. The marker is the deletion, travelling under the
+   * same rule as every other edit.
+   *
+   * Everything that reads for display filters these out; only export and sync
+   * see them.
+   */
+  deletedAt?: string;
 };

@@ -1,6 +1,7 @@
 import { calculateValve, DEFAULT_AIM, type Aim } from "./calc";
 import { partsForSize } from "./catalogues";
 import { mmFixed } from "./format";
+import { modelName } from "./models";
 import type {
   Bike,
   ClearanceRange,
@@ -184,7 +185,8 @@ export function recordToCsv(
 ): string {
   const rows: (string | number | undefined)[][] = [
     ["Bike", bike?.name],
-    ["Model", bike?.model],
+    ["Model", modelName(bike?.modelId)],
+    ["Year", bike?.year],
     ["Engine", engine.name + " " + engine.subtitle],
     ["Date", record.date],
     ["Odometer", record.odometer],

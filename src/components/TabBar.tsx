@@ -29,12 +29,24 @@ export function TabBar() {
               <Link
                 href={tab.href}
                 aria-current={active ? "page" : undefined}
-                className={`flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors ${
+                className={`flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors [@media(max-height:480px)]:gap-0 [@media(max-height:480px)]:py-1.5 ${
                   active ? "text-accent" : "text-faint hover:text-muted"
                 }`}
               >
                 <Icon />
-                {tab.label}
+                {/*
+                  On a landscape phone the bar was taking roughly a fifth of the
+                  screen height. Dropping to icons only below 480px tall gives
+                  that back where it is scarcest.
+
+                  sr-only rather than hidden: the icon is aria-hidden, so
+                  removing this text outright would leave the link with no
+                  accessible name at all. This way it keeps one and still takes
+                  no space.
+                */}
+                <span className="[@media(max-height:480px)]:sr-only">
+                  {tab.label}
+                </span>
               </Link>
             </li>
           );

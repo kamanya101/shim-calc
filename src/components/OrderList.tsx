@@ -1,13 +1,14 @@
 "use client";
 
 import { formatDate, formatOdometer, mm } from "@/lib/format";
+import { modelLabel } from "@/lib/models";
 import { buildShoppingList, recordToCsv, suggestFilename } from "@/lib/report";
-import { buildExport, downloadFile } from "@/lib/storage";
+import { downloadFile } from "@/lib/storage";
 import { useRecords } from "./RecordsProvider";
 import { Button, Card, EmptyState, PageHeader } from "./ui";
 
 export function OrderList() {
-  const { ready, engine, bike, bikes, active, aim, allRecords } = useRecords();
+  const { ready, engine, bike, active, aim, exportBundle } = useRecords();
 
   if (!ready) {
     return <p className="p-4 text-sm text-faint">Loading…</p>;
@@ -21,7 +22,9 @@ export function OrderList() {
       <PageHeader
         title="Shims to order"
         subtitle={[
-          bike.model ? `${bike.name} · ${bike.model}` : bike.name,
+          modelLabel(bike.modelId, bike.year)
+            ? `${bike.name} · ${modelLabel(bike.modelId, bike.year)}`
+            : bike.name,
           formatDate(active.date),
           formatOdometer(active.odometer),
         ]
@@ -100,7 +103,7 @@ export function OrderList() {
           onClick={() =>
             downloadFile(
               `shim-calc-backup-${active.date}.json`,
-              JSON.stringify(buildExport(bikes, allRecords), null, 2),
+              JSON.stringify(exportBundle(), null, 2),
               "application/json",
             )
           }

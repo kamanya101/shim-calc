@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { APP_DESCRIPTION, APP_NAME, APP_SHORT_NAME } from "@/lib/app";
+import { AuthProvider } from "@/components/AuthProvider";
 import { Footer } from "@/components/Footer";
 import { RecordsProvider } from "@/components/RecordsProvider";
+import { SyncProvider } from "@/components/SyncProvider";
 import { TabBar } from "@/components/TabBar";
 import { ServiceWorker } from "@/components/ServiceWorker";
 import "./globals.css";
@@ -40,9 +42,13 @@ export default function RootLayout({
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full">
         <RecordsProvider>
-          {children}
-          <Footer />
-          <TabBar />
+          <AuthProvider>
+            <SyncProvider>
+              {children}
+              <Footer />
+              <TabBar />
+            </SyncProvider>
+          </AuthProvider>
         </RecordsProvider>
         <ServiceWorker />
       </body>

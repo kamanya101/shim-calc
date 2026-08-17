@@ -14,7 +14,13 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: "/",
     scope: "/",
     display: "standalone",
-    orientation: "portrait",
+    /**
+     * Deliberately not locked to portrait. The phone's own rotation lock is the
+     * rider's decision and they already know how to use it; overriding it from
+     * in here only created an inconsistency, since the same app in a browser tab
+     * rotated freely while the installed one refused to.
+     */
+    orientation: "any",
     background_color: "#0d0e10",
     theme_color: "#0d0e10",
     categories: ["utilities", "productivity"],
