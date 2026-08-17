@@ -118,13 +118,13 @@ export function AverageDrift({
 }) {
   const series = useMemo(
     () =>
-      (["intake", "exhaust"] as ValveType[]).map((type) => ({
-        type,
-        points: buildShimSteps(
-          records,
-          engine.positions.filter((p) => p.type === type),
-        ),
-      })),
+      (["intake", "exhaust"] as ValveType[]).map((type) => {
+        const positions = engine.positions.filter((p) => p.type === type);
+        // Counted off the engine rather than written as "4", so the heading
+        // cannot end up promising an average over more valves than the spec
+        // actually has.
+        return { type, count: positions.length, points: buildShimSteps(records, positions) };
+      }),
     [engine, records],
   );
 
@@ -147,14 +147,17 @@ export function AverageDrift({
         drop from one end to the other is how far the valves have sunk.
       </p>
       <div className="grid gap-2.5 sm:grid-cols-2">
-        {series.map(({ type, points }) => (
+        {series.map(({ type, count, points }) => (
           <Card key={type} className="p-2.5">
             {/* capitalize stays on the valve type alone — applied to the whole
                 heading it also renders the units as "Mm". */}
             <h4 className="mb-1 flex items-baseline justify-between gap-2 text-xs font-semibold">
-              <span className="capitalize">{type}</span>
+              <span>
+                Average across all {count}{" "}
+                <span className="capitalize">{type}</span> Valves
+              </span>
               {overallChange(points) !== undefined && (
-                <span className="font-mono font-normal text-faint">
+                <span className="shrink-0 font-mono font-normal text-faint">
                   {signedMm(overallChange(points))} mm overall
                 </span>
               )}
@@ -164,7 +167,11 @@ export function AverageDrift({
                 no shim sizes recorded
               </p>
             ) : (
-              <ShimPanel points={points} label={type} height={104} />
+              <ShimPanel
+                points={points}
+                label={`all ${count} ${type} valves`}
+                height={104}
+              />
             )}
           </Card>
         ))}
