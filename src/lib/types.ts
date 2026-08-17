@@ -80,10 +80,14 @@ export type ValveReading = {
  * two LC8s gets two histories and two sets of wear charts rather than one
  * incoherent one.
  *
- * The id is generated and never shown. The rider identifies the bike by a
- * nickname, which is all that is needed to tell their own bikes apart — a VIN
- * or a registration would be a chore to type and would put personal data into
- * a record that has no business holding any.
+ * Two identifiers, doing different jobs. The `id` is generated, never shown,
+ * and is what the rider's own devices and any handed-over copy agree on. The
+ * `vin` is stamped on the steering head, so it is the only thing two people who
+ * have never met can both read off the same motorcycle — which is what makes a
+ * bike recognisable to a technician, or to whoever buys it in ten years.
+ *
+ * The nickname is neither. It is the rider's own label, it need not be unique,
+ * and nothing is ever matched on it.
  */
 /** What an odometer counts in. */
 export type DistanceUnit = "km" | "mi";
@@ -103,6 +107,38 @@ export type Bike = {
    * date would be a poor trade.
    */
   year?: number;
+  /**
+   * The frame number, normalised to 17 upper-case characters. See vin.ts.
+   *
+   * Optional in the type because a bike exists from the moment it is created
+   * and the rider may not be standing next to it — they can measure and
+   * calculate straight away. What waits on this is everything that needs the
+   * motorcycle to be *identified*: its history, its charts, its place in the
+   * shared averages.
+   *
+   * Held in the clear here, in the rider's own row, where it is theirs to read
+   * and correct. It is never stored in the shared pool, which keys on a hash of
+   * it instead, so nothing in that table can be traced back to a real machine.
+   */
+  vin?: string;
+  /**
+   * The secret this bike's pooled readings are keyed under. See pool.ts.
+   *
+   * It belongs to the motorcycle, not to the rider, and that is the whole
+   * point. Keyed on the rider, the same physical bike measured by its owner and
+   * by the workshop that services it arrives in the pool twice, counted as two
+   * machines — which quietly inflates the one number the comparison has to be
+   * honest about. Keyed on the bike, the token travels with any handed-over
+   * copy, both pushes produce identical ids, and the second simply lands on top
+   * of the first.
+   *
+   * Optional only for bikes saved before this existed; migrations.ts gives
+   * every one of them a token, and `newBike` has issued one ever since. A bike
+   * without one contributes nothing, because there is no key to file it under.
+   *
+   * Never displayed, and never sent anywhere except as the input to a hash.
+   */
+  poolToken?: string;
   /**
    * Which unit this bike's odometer is read in.
    *
@@ -126,6 +162,21 @@ export type Bike = {
 export type ServiceRecord = {
   id: string;
   bikeId: string;
+  /**
+   * The account that wrote this, when it was not this one.
+   *
+   * Absent means mine — which is every record this app has ever created, and
+   * the only kind it pushes. A record with an author arrived from somebody
+   * else who holds the same motorcycle, matched by frame number rather than by
+   * anyone handing anything over. It is read-only here: they keep it current,
+   * this device only displays it.
+   *
+   * An opaque account id, never an email. Sharing a bike with somebody is not
+   * a reason to learn who they are — it is enough to be able to group their
+   * entries together, and to hide the lot if they turn out to be typing
+   * nonsense onto a machine that is not theirs.
+   */
+  author?: string;
   engineId: string;
   /** ISO date, no time — a service is a day, not an instant. */
   date: string;

@@ -30,7 +30,7 @@ create table if not exists public.bikes (
   -- printed name. The names are riders' to reword; this is what the shared
   -- averages group on, so it must outlive any wording change.
   model_id   text,
-  -- Model year. Optional, and only ever from the production run (2004-2012).
+  -- Model year. Optional, and only ever from the production run (2003-2013).
   year       integer,
   engine_id  text not null,
   created_at text not null,
@@ -49,6 +49,41 @@ alter table public.bikes add column if not exists year integer;
 -- resets the rider's choice, and the pool is then handed miles labelled as
 -- kilometres.
 alter table public.bikes add column if not exists units text;
+
+-- The frame number, normalised to 17 upper-case characters by src/lib/vin.ts.
+--
+-- Deliberately NOT unique. The same motorcycle legitimately appears in more
+-- than one account at once — a rider and the workshop that services it, a
+-- seller and the person who just bought it — and that is the whole point of
+-- recording it. Two rows with one VIN means two people know the same bike,
+-- which is the feature, not a fault.
+--
+-- It is not unique per rider either, even though one rider holding the same
+-- bike twice IS a mistake. A unique constraint here would surface that mistake
+-- as a failed sync, which stops their own history reaching the server over
+-- what is really a tidying-up problem. The app catches it at the point of
+-- entry instead, where it can offer to merge the two.
+alter table public.bikes add column if not exists vin text;
+
+-- Looking a bike up by frame number, across accounts: how a buyer finds the
+-- history of a machine nobody handed them.
+create index if not exists bikes_vin_idx
+  on public.bikes (vin)
+  where vin is not null;
+
+-- The secret this bike's pooled readings are keyed under; see src/lib/pool.ts.
+--
+-- It belongs to the motorcycle, not to the account, and that is the point.
+-- Keyed on the rider, one physical bike measured by its owner and by the
+-- workshop that services it arrives in the pool as two machines, inflating the
+-- very count the comparison has to be honest about. Keyed on the bike, the
+-- token travels with any handed-over copy, both sides compute the same reading
+-- ids, and the second push lands on top of the first.
+--
+-- So whoever holds the bike can also retract its readings, inside the 30-day
+-- window and for that machine only. That is the intended reach: it follows the
+-- motorcycle, and after thirty days nobody can touch anything at all.
+alter table public.bikes add column if not exists pool_token text;
 
 -- Carry the old printed names over to ids before the old column goes, or the
 -- upgrade would quietly throw away which bike each row was. The old names map
@@ -178,10 +213,20 @@ $$;
 -- It carries no consent flag. Contributing is not a decision a rider makes —
 -- using the app is what puts their measurements in the pool — so there is
 -- nothing here to record an answer to, and nothing to switch off.
+-- VESTIGIAL. Nothing reads or writes this any more.
+--
+-- It held one token per account, and every pooled reading used to be keyed on
+-- a hash of it. That made the same physical motorcycle look like two different
+-- machines when its owner and their workshop both recorded a service on it, so
+-- the token moved onto the bike — see the pool_token column above.
+--
+-- Left in place rather than dropped because dropping it would destroy the only
+-- means of ever recomputing the keys of readings contributed under the old
+-- scheme. Once those are cleared out, this can go:
+--
+--   drop table public.contributors;
 create table if not exists public.contributors (
   user_id     uuid primary key references auth.users (id) on delete cascade,
-  -- 32 random bytes, hex, generated on the device. Every pooled reading of
-  -- theirs is keyed on a hash of this; see src/lib/pool.ts.
   token       text not null unique,
   updated_at  text not null
 );
@@ -316,13 +361,15 @@ security definer
 set search_path = public
 as $$
 declare
-  me      public.contributors%rowtype;
   written integer := 0;
 begin
-  select * into me from public.contributors where user_id = auth.uid();
-
-  if me.user_id is null then
-    raise exception 'no contributor record for this account';
+  -- Being signed in is the whole requirement. Readings are keyed on a secret
+  -- held by each bike rather than by the account — see the pool_token column
+  -- on public.bikes and src/lib/pool.ts — so there is nothing about the caller
+  -- left to look up, and no per-account record to insist on. Execute is
+  -- granted to `authenticated` alone; this is the belt to that pair of braces.
+  if auth.uid() is null then
+    raise exception 'must be signed in to contribute';
   end if;
 
   -- A rider with a hundred services sends a few hundred rows. Anything near
@@ -563,3 +610,186 @@ revoke all on function
 grant execute on function
   public.pool_shim_distribution(text[], integer[], boolean, integer, integer)
   to authenticated;
+
+
+-- ---------------------------------------------------------------------------
+-- 6. Machines: one physical motorcycle, known to more than one account.
+-- ---------------------------------------------------------------------------
+--
+-- A rider and the workshop that services their bike may never exchange
+-- anything. Each finds the app on their own, each creates their own entry for
+-- the same motorcycle, names it what they like, and gives it the frame number.
+-- From that moment the two entries are provably about one machine, and neither
+-- person had to do anything but read the number off the steering head.
+--
+-- This table is what makes that true. One row per VIN, holding the pool token
+-- every account that knows the machine will agree on. First to claim it sets
+-- it; everybody after adopts it. That is what puts both riders' readings under
+-- one bike in the shared averages instead of two, and it is the same
+-- first-writer-wins rule the old per-account token used, moved onto the object
+-- it should always have belonged to.
+--
+-- Nobody may read this table directly. The token is key material: anyone
+-- holding it can withdraw that machine's readings inside the 30-day window, so
+-- a table anybody could select from would hand out the retraction rights to
+-- every motorcycle in the pool at once. It is reachable only through
+-- claim_machine below, which insists the caller already holds a bike carrying
+-- that frame number.
+create table if not exists public.machines (
+  vin        text primary key,
+  pool_token text not null,
+  created_at timestamptz not null default now()
+);
+
+alter table public.machines enable row level security;
+revoke all on public.machines from anon, authenticated;
+
+
+-- Claim a machine, and find out what is already known about it.
+--
+-- Returns the token the caller must key their pooled readings under — theirs
+-- if the VIN is new, the established one if it is not — together with a count
+-- of what other accounts already hold for that machine, which is what lets the
+-- app say "this bike has a history" the instant a second person types the
+-- number.
+--
+-- The caller must already own a bike with this VIN. Without that check the
+-- function would be an oracle: feed it frame numbers off classified adverts
+-- and it reports which motorcycles are in the system, and hands out their
+-- tokens. With it, the answer costs a row the caller had to write first, under
+-- their own account, which is exactly the "standing at the bike" proof the
+-- frame number is meant to be.
+create or replace function public.claim_machine(
+  target_vin  text,
+  offer_token text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  settled text;
+  others  integer;
+begin
+  if auth.uid() is null then
+    raise exception 'must be signed in';
+  end if;
+
+  if target_vin is null or length(target_vin) <> 17 then
+    raise exception 'not a frame number';
+  end if;
+
+  if offer_token is null or length(offer_token) < 32 then
+    raise exception 'token too short to be unguessable';
+  end if;
+
+  if not exists (
+    select 1 from public.bikes
+     where user_id = auth.uid()
+       and vin = target_vin
+       and deleted_at is null
+  ) then
+    raise exception 'no bike of yours carries that frame number';
+  end if;
+
+  -- First claim wins, and it is never overwritten. Two people typing the VIN
+  -- at the same moment would otherwise each insist on their own token, and
+  -- every reading pushed under the loser would be stranded in the pool: still
+  -- counted, but looking like a separate motorcycle.
+  insert into public.machines (vin, pool_token)
+  values (target_vin, offer_token)
+  on conflict (vin) do nothing;
+
+  select pool_token into settled from public.machines where vin = target_vin;
+
+  select count(distinct r.id) into others
+    from public.service_records r
+    join public.bikes b
+      on b.user_id = r.user_id
+     and b.id = r.bike_id
+   where b.vin = target_vin
+     and b.deleted_at is null
+     and r.deleted_at is null
+     and r.user_id <> auth.uid();
+
+  return jsonb_build_object(
+    'poolToken', settled,
+    'otherServices', coalesce(others, 0)
+  );
+end;
+$$;
+
+revoke all on function public.claim_machine(text, text) from public, anon;
+grant execute on function public.claim_machine(text, text) to authenticated;
+
+
+-- Every service another account holds for this machine.
+--
+-- The caller's own rows are excluded — they already have those, and sending
+-- them back would invite a device to treat its own work as somebody else's.
+--
+-- No bike_id is returned. The receiving app files these against its own entry
+-- for the motorcycle, which is the whole point: B keeps B's bike, with B's
+-- name and B's id, and only the services flow in. `units` comes along because
+-- an odometer is meaningless without it — a bike kept in miles feeding one
+-- kept in kilometres is how a shared history quietly gains sixty per cent.
+--
+-- `author` is the account that wrote the row, and it is a bare uuid on
+-- purpose. It is enough to group a stranger's entries together and to hide
+-- them; it reveals nothing about who they are. Sharing a motorcycle is not a
+-- reason to learn somebody's email address.
+create or replace function public.records_for_vin(target_vin text)
+returns table (
+  id         text,
+  author     uuid,
+  engine_id  text,
+  date       text,
+  odometer   integer,
+  units      text,
+  title      text,
+  readings   jsonb,
+  created_at text,
+  updated_at text,
+  deleted_at text
+)
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if auth.uid() is null then
+    raise exception 'must be signed in';
+  end if;
+
+  -- Same gate as claim_machine, and for the same reason: possession of a bike
+  -- carrying the frame number is what stands in for permission.
+  if not exists (
+    select 1 from public.bikes
+     where user_id = auth.uid()
+       and vin = target_vin
+       and deleted_at is null
+  ) then
+    raise exception 'no bike of yours carries that frame number';
+  end if;
+
+  return query
+    select
+      r.id, r.user_id, r.engine_id, r.date, r.odometer, b.units,
+      r.title, r.readings, r.created_at, r.updated_at, r.deleted_at
+    from public.service_records r
+    join public.bikes b
+      on b.user_id = r.user_id
+     and b.id = r.bike_id
+   where b.vin = target_vin
+     and b.deleted_at is null
+     and r.user_id <> auth.uid()
+   -- A machine with decades of history across several owners is still a few
+   -- hundred rows. This is a guard against a pathological account, not a page
+   -- size, and the app does not paginate.
+   limit 5000;
+end;
+$$;
+
+revoke all on function public.records_for_vin(text) from public, anon;
+grant execute on function public.records_for_vin(text) to authenticated;

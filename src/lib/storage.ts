@@ -2,6 +2,7 @@
 
 import { todayIso } from "./format";
 import { LEGACY_MODEL_NAMES } from "./models";
+import { newPoolToken } from "./pool";
 import type { Bike, ServiceRecord } from "./types";
 
 /**
@@ -32,14 +33,15 @@ export const OWNER_KEY = "shim-calc/owner/v1";
 export const SYNC_KEY = "shim-calc/sync/v1";
 
 /**
- * Whether this rider shares readings with the pool, and the token their pooled
- * readings are keyed under. Account-scoped like everything above, so it is
- * wiped when somebody else signs in on the same device.
+ * Bookkeeping for the pool push — what went up last, so an unchanged pool is
+ * never re-sent. The keys themselves belong to each bike now, not to the
+ * rider; see `poolToken` on Bike. Account-scoped like everything above, so it
+ * is wiped when somebody else signs in on the same device.
  */
 export const CONTRIBUTION_KEY = "shim-calc/contribution/v1";
 
 /** Bumped when the stored shape changes; see migrations.ts. */
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
 const EXPORT_VERSION = 4;
 
@@ -58,6 +60,10 @@ export function newBike(engineId: string, name: string, modelId?: string): Bike 
     name,
     modelId,
     engineId,
+    // Issued once, at birth, and never reissued. Everything this bike ever
+    // contributes to the pool is keyed under it, so a second token would not
+    // correct anything — it would split one motorcycle's history in two.
+    poolToken: newPoolToken(),
     createdAt: now,
     updatedAt: now,
   };

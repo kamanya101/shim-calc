@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { APP_NAME } from "@/lib/app";
 import type { Aim } from "@/lib/calc";
 import { groupsByBank } from "@/lib/engines";
 import { mm, todayIso, unitLabel } from "@/lib/format";
 import { BIKE_MODEL_GROUPS, MODEL_YEARS, modelLabel } from "@/lib/models";
 import { sheetStatus } from "@/lib/report";
-import type { DistanceUnit, ValveType } from "@/lib/types";
+import type { Bike, DistanceUnit, ValveType } from "@/lib/types";
+import { checkVin, formatVin } from "@/lib/vin";
 import { useRecords } from "./RecordsProvider";
 import { ValveCard } from "./ValveCard";
 import { Button, Card, Chip, PageHeader, Segmented } from "./ui";
@@ -180,6 +182,10 @@ export function ServiceSheet() {
           than one
         </p>
 
+        {/* Keyed on the bike so switching bikes reloads the field rather than
+            leaving the previous machine's number sitting in it. */}
+        <VinField key={bike.id} bike={bike} updateBike={updateBike} />
+
         {bikes.length > 1 && (
           <button
             type="button"
@@ -340,6 +346,126 @@ export function ServiceSheet() {
         Saved on this device as you type. Use of this calculator is at your own
         risk — check everything before you build it up.
       </p>
+    </div>
+  );
+}
+
+/**
+ * The frame number, and the one field in here that is not just record-keeping.
+ *
+ * A nickname tells this rider's bikes apart. The VIN tells *everybody's* bikes
+ * apart, which is why the history, the charts and the shared comparison all
+ * wait on it: none of them can be trusted until the app knows which physical
+ * motorcycle it is looking at.
+ *
+ * The bike holds a VIN only while the field holds a valid one. Committing a
+ * half-typed number would leave a bike identified by something that is not an
+ * identifier — and, because everything downstream keys on it, would put
+ * readings into the shared pool under a machine that does not exist. So an
+ * incomplete entry clears it, and what is on screen and what is stored never
+ * disagree.
+ */
+function VinField({
+  bike,
+  updateBike,
+}: {
+  bike: Bike;
+  updateBike: (patch: Partial<Omit<Bike, "id">>) => void;
+}) {
+  const [draft, setDraft] = useState(bike.vin ?? "");
+  const typed = draft.trim();
+  const check = typed ? checkVin(typed) : null;
+
+  const commit = (next: string) => {
+    // Upper case as they type: a VIN has no lower case, and seeing it in the
+    // form it will be stored in is what lets somebody check it against the
+    // frame. Spaces and hyphens are left alone until it is read — people group
+    // seventeen characters to keep their place, and stripping them mid-word
+    // moves the cursor out from under them.
+    const raw = next.toUpperCase();
+    setDraft(raw);
+
+    const trimmed = raw.trim();
+    if (!trimmed) {
+      updateBike({ vin: undefined });
+      return;
+    }
+    const result = checkVin(trimmed);
+    updateBike({ vin: result.ok ? result.vin : undefined });
+  };
+
+  const borderClass = !check
+    ? "border-line focus:border-accent"
+    : check.ok
+      ? "border-ok/50 focus:border-ok"
+      : "border-bad/50 focus:border-bad";
+
+  return (
+    <div className="mt-3 border-t border-line pt-3">
+      <label className="block">
+        <span className="mb-1 flex flex-wrap items-baseline justify-between gap-x-2 text-[11px] font-medium text-faint">
+          <span>Frame number (VIN)</span>
+          <span className="font-normal">17 characters, on the steering head</span>
+        </span>
+        <input
+          type="text"
+          // Phones default to sentence case and helpfully "correct" a VIN into
+          // a word. Both are switched off, and the keyboard is asked to start
+          // in caps.
+          autoCapitalize="characters"
+          autoCorrect="off"
+          autoComplete="off"
+          spellCheck={false}
+          placeholder="VBK…"
+          value={draft}
+          onChange={(e) => commit(e.target.value)}
+          // Room for the spaces people type while keeping their place, without
+          // letting a paste of something else entirely through.
+          maxLength={25}
+          className={`w-full rounded-lg border bg-bg px-2.5 py-2 font-mono text-sm tracking-[0.12em] text-ink outline-none placeholder:tracking-normal placeholder:text-faint/50 ${borderClass}`}
+        />
+      </label>
+
+      {!check && (
+        <p className="mt-1.5 text-[11px] leading-relaxed text-faint">
+          Opens this bike&rsquo;s history, its charts and the shared comparison —
+          and is how a workshop, or whoever owns it next, finds the machine
+          again. The pool only ever sees a scrambled version, never the number.
+        </p>
+      )}
+
+      {check && !check.ok && (
+        <p className="mt-1.5 text-[11px] leading-relaxed text-bad">
+          {check.error}
+        </p>
+      )}
+
+      {check?.ok && (
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+          <p className="font-mono text-[11px] text-ok">
+            ✓ {formatVin(check.vin)}
+          </p>
+          {check.year !== undefined && bike.year !== check.year && (
+            // Offered, never applied. The frame says what the factory called
+            // it; a rider who has been told otherwise gets to keep their
+            // answer, and silently overwriting a field they filled in is the
+            // fastest way to make them distrust everything else here.
+            <button
+              type="button"
+              onClick={() => updateBike({ year: check.year })}
+              className="rounded-md bg-raised px-2 py-0.5 text-[11px] font-semibold text-accent ring-1 ring-line transition-colors hover:bg-line"
+            >
+              Set year to {check.year}
+            </button>
+          )}
+        </div>
+      )}
+
+      {check?.ok && check.warning && (
+        <p className="mt-1 text-[11px] leading-relaxed text-warn">
+          {check.warning}
+        </p>
+      )}
     </div>
   );
 }

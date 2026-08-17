@@ -99,9 +99,13 @@ export function modelLabel(
  * Production years of the LC8 950/990. The year is picked from this list
  * rather than typed, so the shared pool never has to cope with 1998, 20I0 or
  * a typo three digits long.
+ *
+ * The range matches what a frame number can say: position 10 of a VIN decodes
+ * to 2003–2013 across this family, and a list narrower than that would decode
+ * a genuine bike's year and then refuse to hold it. See vin.ts.
  */
-export const FIRST_MODEL_YEAR = 2004;
-export const LAST_MODEL_YEAR = 2012;
+export const FIRST_MODEL_YEAR = 2003;
+export const LAST_MODEL_YEAR = 2013;
 
 export const MODEL_YEARS: number[] = Array.from(
   { length: LAST_MODEL_YEAR - FIRST_MODEL_YEAR + 1 },

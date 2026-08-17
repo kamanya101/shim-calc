@@ -17,6 +17,7 @@ import type { EngineSpec, Microns, ServiceRecord, ValveType } from "@/lib/types"
 import { BikeTabs } from "./BikeTabs";
 import { useRecords } from "./RecordsProvider";
 import { Card, EmptyState, PageHeader } from "./ui";
+import { VinGate } from "./VinGate";
 
 /**
  * Where this bike sits among all the others.
@@ -93,6 +94,22 @@ export function Compare() {
   const loading = ready && loaded?.key !== requestKey;
 
   if (!ready) return <p className="p-4 text-sm text-faint">Loading…</p>;
+
+  // This whole page is the comparison, so the gate replaces it rather than
+  // wrapping part of it. It sits below every hook, so the rules of hooks still
+  // hold on the render where it takes effect.
+  if (!bike.vin) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-5">
+        <PageHeader
+          title="Compare"
+          subtitle={bikes.length > 1 ? bike.name : undefined}
+        />
+        <BikeTabs />
+        <VinGate bike={bike} services={records.length} opens="comparison" />
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-5">

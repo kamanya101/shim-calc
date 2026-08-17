@@ -2,6 +2,7 @@
 
 import { DEFAULT_ENGINE_ID } from "./engines";
 import { LEGACY_MODEL_NAMES } from "./models";
+import { newPoolToken } from "./pool";
 import {
   ACTIVE_BIKE_KEY,
   BIKES_KEY,
@@ -36,6 +37,7 @@ export function runMigrations(): void {
     if (version < 2) migrateToBikes();
     if (version < 3) migrateToSyncable();
     if (version < 4) migrateToModelIds();
+    if (version < 5) migrateToBikePoolTokens();
     window.localStorage.setItem(SCHEMA_KEY, String(SCHEMA_VERSION));
   } catch {
     // A failed migration must not take the app down with it. Leaving the
@@ -140,6 +142,38 @@ function migrateToModelIds(): void {
   });
 
   window.localStorage.setItem(BIKES_KEY, JSON.stringify(migrated));
+}
+
+/**
+ * Version 5 moves the pool's identity from the rider onto the bike.
+ *
+ * Pooled readings used to be keyed on a token belonging to the account, which
+ * meant one motorcycle measured by its owner and by the workshop that services
+ * it arrived as two different machines. The token now belongs to the bike and
+ * travels with any handed-over copy, so both sides compute the same ids and the
+ * second push overwrites rather than duplicates. See pool.ts.
+ *
+ * `updatedAt` moves with it, deliberately. Sync keeps whichever copy was
+ * touched last, so a bike stamped only with its new token would lose to the
+ * server's untouched copy on the very next reconcile and the token would be
+ * thrown away again on every device in turn.
+ *
+ * Readings already pushed under the old account token cannot be re-keyed from
+ * here — their ids were derived from a secret this no longer uses, so they can
+ * be neither recomputed nor retracted. They stay in the pool as orphans, which
+ * is the same end state as a deleted account and is why this wants doing before
+ * a pool has anything real in it.
+ */
+function migrateToBikePoolTokens(): void {
+  const bikes = readBikes();
+  if (bikes.length === 0) return;
+
+  const now = new Date().toISOString();
+  const tokened = bikes.map((bike) =>
+    bike.poolToken ? bike : { ...bike, poolToken: newPoolToken(), updatedAt: now },
+  );
+
+  window.localStorage.setItem(BIKES_KEY, JSON.stringify(tokened));
 }
 
 function readBikes(): Bike[] {

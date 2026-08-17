@@ -1,7 +1,7 @@
 "use client";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { buildContribution, newContributorToken } from "./pool";
+import { buildContribution } from "./pool";
 import {
   bikesStore,
   contributionStore,
@@ -42,6 +42,8 @@ type BikeRow = {
   name: string;
   model_id: string | null;
   year: number | null;
+  vin: string | null;
+  pool_token: string | null;
   units: string | null;
   engine_id: string;
   created_at: string;
@@ -68,6 +70,8 @@ const toBike = (row: BikeRow): Bike => ({
   name: row.name,
   modelId: row.model_id ?? undefined,
   year: row.year ?? undefined,
+  vin: row.vin ?? undefined,
+  poolToken: row.pool_token ?? undefined,
   // Anything the server does not recognise is treated as unset rather than
   // carried through, so a bad value cannot reach the pool as a unit.
   units: row.units === "mi" || row.units === "km" ? row.units : undefined,
@@ -83,6 +87,8 @@ const toBikeRow = (bike: Bike, userId: string): BikeRow => ({
   name: bike.name,
   model_id: bike.modelId ?? null,
   year: bike.year ?? null,
+  vin: bike.vin ?? null,
+  pool_token: bike.poolToken ?? null,
   units: bike.units ?? null,
   engine_id: bike.engineId,
   created_at: bike.createdAt,
@@ -217,10 +223,17 @@ async function run(): Promise<SyncOutcome> {
       if (error) throw error;
     }
 
-    if (records.toPush.length) {
+    // Only ever this account's own work. A record with an author arrived from
+    // somebody else who holds the same motorcycle, and they are the one who
+    // keeps it current; writing it back under this user_id would file their
+    // service under this rider's name and turn one record into two competing
+    // copies that each sync would hand back and forth.
+    const ours = records.toPush.filter((record) => !record.author);
+
+    if (ours.length) {
       const { error } = await supabase
         .from("service_records")
-        .upsert(records.toPush.map((record) => toRecordRow(record, userId)), {
+        .upsert(ours.map((record) => toRecordRow(record, userId)), {
           onConflict: "user_id,id",
         });
       if (error) throw error;
@@ -235,7 +248,7 @@ async function run(): Promise<SyncOutcome> {
     // must not report a rider's own history as failing to sync, when it just
     // did. Nothing is lost either way; the next reconcile tries again.
     try {
-      await syncContributions(supabase, userId);
+      await syncContributions(supabase);
     } catch {
       // Deliberately silent. See above.
     }
@@ -248,72 +261,24 @@ async function run(): Promise<SyncOutcome> {
   }
 }
 
-type ContributorRow = {
-  user_id: string;
-  token: string;
-  updated_at: string;
-};
-
 /**
  * Send the pool what it does not have.
  *
  * There is no consent to reconcile — measurements go up because the app is
- * being used — so the only thing that has to agree across a rider's devices is
- * the token, and it agrees by never changing. Once the server has issued one
- * it is never overwritten, even by a device that has generated its own. Two
- * devices first syncing at the same time would otherwise each insist on their
- * own, and every reading pushed under the loser would be stranded: still in
- * the pool, still counted, but looking like a different motorcycle. A token is
- * an identity, not an opinion.
+ * being used. Nor, since version 5, is there an identity to negotiate: every
+ * key is derived from a token held on the bike's own row, so two devices
+ * showing the same bike already agree by virtue of holding the same record,
+ * and it reaches a new device by the same sync as everything else about that
+ * motorcycle. What used to be a careful dance over who had issued the account's
+ * token is simply gone.
+ *
+ * All that is left is not re-sending a payload the server has already taken.
  */
-async function syncContributions(
-  supabase: SupabaseClient,
-  userId: string,
-): Promise<void> {
+async function syncContributions(supabase: SupabaseClient): Promise<void> {
   const local = contributionStore.get();
-
-  const { data, error } = await supabase
-    .from("contributors")
-    .select("*")
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (error) throw error;
-
-  let server = data as ContributorRow | null;
-
-  if (!server) {
-    const row: ContributorRow = {
-      user_id: userId,
-      token: local.token ?? newContributorToken(),
-      updated_at: new Date().toISOString(),
-    };
-    const insert = await supabase.from("contributors").insert(row);
-    if (insert.error) {
-      // Another device got there first with its own token. Theirs stands.
-      const retry = await supabase
-        .from("contributors")
-        .select("*")
-        .eq("user_id", userId)
-        .maybeSingle();
-      if (retry.error) throw retry.error;
-      server = retry.data as ContributorRow | null;
-    } else {
-      server = row;
-    }
-    if (!server) return;
-  }
-
-  const next: Contribution = { ...local, token: server.token };
-
-  // A different token means different keys for every reading, so nothing this
-  // device believes it has already sent applies any more.
-  if (local.token !== server.token) {
-    next.lastPushed = null;
-    next.lastPushedAt = null;
-  }
+  const next: Contribution = { ...local };
 
   const payload = await buildContribution(
-    server.token,
     bikesStore.get(),
     recordsStore.get(),
   );

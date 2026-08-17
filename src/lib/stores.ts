@@ -38,12 +38,12 @@ export type SyncState = {
  *
  * Contributing is not a setting. Using the app is what puts a rider's
  * measurements into the averages, so there is no flag here recording an
- * answer — only the contributor token, which is the value every pooled
- * reading of theirs is keyed under (see pool.ts), and enough bookkeeping to
- * avoid re-sending an unchanged pool on every sync.
+ * answer — and no key material either. Every pooled reading is keyed under a
+ * token belonging to its bike (see `poolToken` on Bike), which travels with
+ * the motorcycle rather than the account. What is left here is bookkeeping:
+ * just enough to avoid re-sending an unchanged pool on every sync.
  */
 export type Contribution = {
-  token: string | null;
   /** Fingerprint of the last payload the server accepted. */
   lastPushed: string | null;
   lastPushedAt: string | null;
@@ -56,7 +56,6 @@ const EMPTY_BIKES: Bike[] = [];
 const NO_SYNC: SyncState = { lastSyncedAt: null };
 
 const NO_CONTRIBUTION: Contribution = {
-  token: null,
   lastPushed: null,
   lastPushedAt: null,
   shared: 0,
@@ -118,12 +117,12 @@ export const contributionStore = createLocalStore<Contribution>(
   (raw) => {
     const value = raw as Partial<Contribution> | null;
     if (!value || typeof value !== "object") return null;
-    // Read field by field rather than spread, so the opt-in flags an earlier
-    // build stored are dropped instead of lingering. The token is the one
-    // thing worth carrying across: losing it would orphan the readings this
-    // rider has already contributed and start them a second, parallel set.
+    // Read field by field rather than spread, so what earlier builds stored
+    // here — the opt-in flags, and later the account's own contributor token —
+    // is dropped rather than lingering as a field nothing reads. Neither has
+    // any meaning now: contributing is not a choice, and the keys belong to
+    // the bikes.
     return {
-      token: typeof value.token === "string" ? value.token : null,
       lastPushed: typeof value.lastPushed === "string" ? value.lastPushed : null,
       lastPushedAt:
         typeof value.lastPushedAt === "string" ? value.lastPushedAt : null,

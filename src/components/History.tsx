@@ -11,6 +11,7 @@ import { ContributionCard } from "./ContributionCard";
 import { useRecords } from "./RecordsProvider";
 import { AverageDrift, TrendChart } from "./TrendChart";
 import { Button, Card, Chip, PageHeader } from "./ui";
+import { VinGate } from "./VinGate";
 
 export function History() {
   const router = useRouter();
@@ -56,6 +57,14 @@ export function History() {
       />
 
       <BikeTabs />
+
+      {/*
+        The charts and the archive wait on the frame number; the account and
+        backup sections below do not. Somebody who cannot yet read their
+        history must still be able to reach their account and take a copy of
+        their own data.
+      */}
+      <VinGate bike={bike} services={records.length} opens="history">
 
       {/*
         Charts first. The trend is what you come to this page to read; the list
@@ -143,6 +152,8 @@ export function History() {
           );
         })}
       </div>
+
+      </VinGate>
 
       <h2 className="mt-6 mb-2 text-sm font-bold">Account</h2>
       <div className="space-y-2">

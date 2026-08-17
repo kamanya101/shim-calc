@@ -18,19 +18,27 @@ import type { Bike, ServiceRecord } from "./types";
  * engine. Getting that out of the pool means readings from one bike have to be
  * recognisable as a set, while nothing about them says whose bike it is.
  *
- * That is what the keys below do. Each is a SHA-256 of the rider's secret
- * contributor token joined to an id the app already has. A hash is one-way:
- * the same inputs always produce the same 64 characters, and there is no way
- * back from the characters to the inputs. So:
+ * That is what the keys below do. Each is a SHA-256 of the *bike's* secret
+ * pool token joined to an id the app already has. A hash is one-way: the same
+ * inputs always produce the same 64 characters, and there is no way back from
+ * the characters to the inputs. So:
  *
  *   * every reading from one bike carries the same bike_key, and they group;
- *   * nothing can be joined back to a person, because the join would need a
- *     token that lives only in that rider's own row;
+ *   * nothing can be joined back to a person, because the token lives on the
+ *     motorcycle's row and says nothing about who owns it;
  *   * re-sending a service produces the identical id, so a push can be
  *     repeated as often as it likes and never duplicates a reading;
- *   * when the account goes, the token goes with it, the keys can never be
+ *   * when the bike goes, its token goes with it, the keys can never be
  *     recomputed, and the readings stand as orphans. That is the intended end
  *     state, and it is deliberately irreversible.
+ *
+ * The token belongs to the bike rather than the rider, and that is what makes
+ * the last two points hold across *people*. A machine measured by its owner and
+ * by the workshop that services it is one motorcycle, and once a handed-over
+ * copy brings the token with it both of them compute the same ids — so the
+ * second push lands on top of the first instead of beside it. Keyed on the
+ * rider, the same bike would arrive twice and be counted as two, inflating the
+ * one figure the comparison has to be honest about.
  *
  * Note what is *not* recorded: no exact service date (the month is plenty for
  * a wear rate, and the day would make a reading easy to line up with somebody
@@ -103,12 +111,17 @@ function poolKey(token: string, kind: string, id: string): Promise<string> {
 }
 
 /**
- * A fresh contributor token: 32 random bytes.
+ * A fresh pool token: 32 random bytes, issued to a bike when it is created.
  *
  * Long enough that the ids derived from it cannot be guessed, which is what
  * stops anybody naming — and so retracting — a reading that is not theirs.
+ *
+ * Whoever holds a bike holds its token, and so can withdraw that bike's
+ * readings inside the 30-day window. That is the intended reach: it follows the
+ * motorcycle, it covers no other machine, and after thirty days nobody can
+ * touch anything at all.
  */
-export function newContributorToken(): string {
+export function newPoolToken(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(32));
   return [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
@@ -125,7 +138,6 @@ function month(date: string): string | null {
  * this knows to take its readings back out again.
  */
 export async function buildContribution(
-  token: string,
   bikes: Bike[],
   records: ServiceRecord[],
 ): Promise<ContributionPayload> {
@@ -135,14 +147,30 @@ export async function buildContribution(
 
   for (const record of records) {
     const bike = bikeById.get(record.bikeId);
+    // Every key below is derived from the bike's own token, so a record with
+    // no bike — or a bike saved before tokens existed — cannot be keyed at
+    // all. Nothing to send, and nothing that could be taken back either, since
+    // the id that would name it is exactly what is missing. migrations.ts
+    // issues a token to every stored bike, so this is only ever a transient
+    // state on a device that has not run it yet.
+    const token = bike?.poolToken;
+    if (!bike || !token) continue;
+
+    // Somebody else's record, shared because they hold the same motorcycle.
+    // They contribute it themselves, and under the same machine token, so it
+    // is already in the pool with the identical id — pushing it from here
+    // would at best be a no-op and at worst overwrite their current copy with
+    // whatever this device last pulled.
+    if (record.author) continue;
+
     const engine = getEngine(record.engineId);
     // A service whose bike has been deleted goes too. The bike is the thing
     // that was sold or written off; leaving its services in the pool while it
     // is gone from the app would be a state the rider cannot see or correct.
-    const gone = Boolean(record.deletedAt) || !bike || Boolean(bike.deletedAt);
+    const gone = Boolean(record.deletedAt) || Boolean(bike.deletedAt);
 
     const serviceKey = gone ? "" : await poolKey(token, "service", record.id);
-    const bikeKey = gone || !bike ? "" : await poolKey(token, "bike", bike.id);
+    const bikeKey = gone ? "" : await poolKey(token, "bike", bike.id);
 
     for (const position of engine.positions) {
       const id = await poolKey(token, "reading", `${record.id}:${position.id}`);
