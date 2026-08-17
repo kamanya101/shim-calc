@@ -201,7 +201,16 @@ export function AverageDrift({
     [engine, records, aim],
   );
 
-  if (series.every((s) => s.points.length === 0)) return null;
+  // Returning nothing left the heading above stranded over blank space, which
+  // reads as a broken chart rather than an empty one.
+  if (series.every((s) => s.points.length === 0)) {
+    return (
+      <EmptyState title="Nothing measured yet">
+        Enter some clearances on the Sheet and this will chart how far each
+        service drifted, averaged across the intakes and the exhausts.
+      </EmptyState>
+    );
+  }
 
   return (
     <div>
