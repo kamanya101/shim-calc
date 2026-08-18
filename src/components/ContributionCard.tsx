@@ -1,10 +1,11 @@
 "use client";
 
 import { useMemo } from "react";
-import { timeAgo } from "@/lib/format";
+import { formatNumber, timeAgo } from "@/lib/format";
 import { countShareable } from "@/lib/pool";
 import { useLocalStore } from "@/lib/store";
 import { contributionStore } from "@/lib/stores";
+import { useT } from "./LocaleProvider";
 import { useRecords } from "./RecordsProvider";
 import { Card, Chip } from "./ui";
 
@@ -23,6 +24,7 @@ import { Card, Chip } from "./ui";
  * out — is the thing that gets the emphasis.
  */
 export function ContributionCard() {
+  const t = useT();
   const contribution = useLocalStore(contributionStore);
   const { bikes, allRecords } = useRecords();
 
@@ -35,44 +37,39 @@ export function ContributionCard() {
     <Card className="p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold">Shared wear data</p>
-          <p className="mt-0.5 text-xs text-faint">
-            How this app builds its averages.
-          </p>
+          <p className="text-sm font-semibold">{t("pool.heading")}</p>
+          <p className="mt-0.5 text-xs text-faint">{t("pool.subheading")}</p>
         </div>
         <Chip tone="neutral">
-          {counts.readings.toLocaleString()} readings
+          {t("pool.readings", {
+            count: counts.readings,
+            formatted: formatNumber(counts.readings),
+          })}
         </Chip>
       </div>
 
       <p className="mt-3 text-xs leading-relaxed text-muted">
-        One bike&rsquo;s history is too small a sample to show how these engines
-        wear. So every gap you measure joins a shared pool alongside everybody
-        else&rsquo;s, and once enough has come in it becomes a comparison — how
-        your engine is wearing against the average for your model.
+        {t("pool.why")}
       </p>
 
       <p className="mt-2 text-xs leading-relaxed text-muted">
-        <strong className="text-ink">What goes:</strong> the model and year, the
-        odometer, the month, and for each valve the gap you found, the shim that
-        was in it and the gap you confirmed.{" "}
-        <strong className="text-ink">What doesn&rsquo;t:</strong> your name,
-        your email, what you call your bike, or anything that ties a reading
-        back to you — that link is deliberately missing, and it cannot be
-        reconstructed later by anyone, including me.
+        <strong className="text-ink">{t("pool.whatGoesLabel")}</strong>{" "}
+        {t("pool.whatGoes")}{" "}
+        <strong className="text-ink">{t("pool.whatDoesntLabel")}</strong>{" "}
+        {t("pool.whatDoesnt")}
       </p>
 
       <p className="mt-2 text-xs leading-relaxed text-muted">
-        <strong className="text-ink">To take a reading back out</strong>, delete
-        its service within a month and it leaves the pool with it. After that
-        the averages keep it, and deleting only removes it from your own
-        history.
+        <strong className="text-ink">{t("pool.retractLabel")}</strong>
+        {t("pool.retract")}
       </p>
 
       <p className="mt-2 text-[11px] text-faint">
         {contribution.lastPushedAt
-          ? `Last sent ${timeAgo(contribution.lastPushedAt)}.`
-          : "Nothing sent yet — it goes up on the next sync."}
+          ? t("pool.lastSent", {
+              ago: timeAgo(contribution.lastPushedAt, t),
+            })
+          : t("pool.nothingSent")}
       </p>
     </Card>
   );

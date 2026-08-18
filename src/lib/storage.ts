@@ -18,6 +18,15 @@ export const BIKES_KEY = "shim-calc/bikes/v1";
 export const ACTIVE_KEY = "shim-calc/active/v1";
 export const ACTIVE_BIKE_KEY = "shim-calc/active-bike/v1";
 export const AIM_KEY = "shim-calc/aim/v1";
+
+/**
+ * Which language the app is shown in. Null until somebody chooses, which is
+ * not the same as English: an unset value means "follow the phone", and
+ * storing "en" the moment the app first renders would freeze a German rider
+ * into English because their first visit happened before they found the
+ * picker.
+ */
+export const LOCALE_KEY = "shim-calc/locale/v1";
 export const SCHEMA_KEY = "shim-calc/schema";
 
 /**

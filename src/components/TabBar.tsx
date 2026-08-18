@@ -3,18 +3,20 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { RESET_PATH } from "@/lib/app";
+import { useT } from "./LocaleProvider";
 
 const TABS = [
-  { href: "/", label: "Sheet", icon: SheetIcon },
-  { href: "/order", label: "Order", icon: CartIcon },
-  { href: "/summary", label: "Summary", icon: SummaryIcon },
-  { href: "/history", label: "History", icon: ClockIcon },
-  { href: "/compare", label: "Compare", icon: CompareIcon },
-  { href: "/notes", label: "Notes", icon: NoteIcon },
+  { href: "/", key: "nav.sheet", icon: SheetIcon },
+  { href: "/order", key: "nav.order", icon: CartIcon },
+  { href: "/summary", key: "nav.summary", icon: SummaryIcon },
+  { href: "/history", key: "nav.history", icon: ClockIcon },
+  { href: "/compare", key: "nav.compare", icon: CompareIcon },
+  { href: "/notes", key: "nav.notes", icon: NoteIcon },
 ] as const;
 
 export function TabBar() {
   const pathname = usePathname();
+  const t = useT();
 
   // Every tab leads somewhere that needs an account, and the one person who
   // sees the reset screen hasn't got into theirs yet.
@@ -24,7 +26,7 @@ export function TabBar() {
     <nav
       className="no-print fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface/95 backdrop-blur"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
-      aria-label="Sections"
+      aria-label={t("nav.sections")}
     >
       <ul className="mx-auto flex max-w-3xl">
         {TABS.map((tab) => {
@@ -51,7 +53,7 @@ export function TabBar() {
                   no space.
                 */}
                 <span className="[@media(max-height:480px)]:sr-only">
-                  {tab.label}
+                  {t(tab.key)}
                 </span>
               </Link>
             </li>

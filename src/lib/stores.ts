@@ -1,5 +1,6 @@
 "use client";
 
+import { isLocaleCode, type LocaleCode } from "./i18n/locales";
 import { DEFAULT_AIM_SETTINGS, type AimSettings } from "./report";
 import { createLocalStore } from "./store";
 import {
@@ -8,6 +9,7 @@ import {
   AIM_KEY,
   BIKES_KEY,
   CONTRIBUTION_KEY,
+  LOCALE_KEY,
   OWNER_KEY,
   RECORDS_KEY,
   SYNC_KEY,
@@ -149,3 +151,19 @@ export function clearLocalData(): void {
   // silently merge two people's bikes into one in the averages.
   contributionStore.set(NO_CONTRIBUTION);
 }
+
+/**
+ * Which language the app is shown in.
+ *
+ * Null means nobody has chosen, which LocaleProvider resolves against the
+ * languages the browser says it wants. That is deliberately not the same as
+ * storing "en": a rider whose phone is set to Czech should get Czech on first
+ * open without touching anything, and an app that wrote "en" into storage the
+ * moment it first rendered would have decided otherwise on their behalf before
+ * they ever saw the picker.
+ */
+export const localeStore = createLocalStore<LocaleCode | null>(
+  LOCALE_KEY,
+  null,
+  (raw) => (typeof raw === "string" && isLocaleCode(raw) ? raw : null),
+);

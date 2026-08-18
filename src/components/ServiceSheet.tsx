@@ -10,17 +10,20 @@ import { BIKE_MODEL_GROUPS, MODEL_YEARS, modelLabel } from "@/lib/models";
 import { sheetStatus } from "@/lib/report";
 import type { Bike, DistanceUnit, ValveType } from "@/lib/types";
 import { checkVin, formatVin } from "@/lib/vin";
+import { useT } from "./LocaleProvider";
 import { useRecords } from "./RecordsProvider";
+import { ServiceItems } from "./ServiceItems";
 import { ValveCard } from "./ValveCard";
 import { Button, Card, Chip, PageHeader, Segmented } from "./ui";
 
-const AIM_OPTIONS: { value: Aim; label: string }[] = [
-  { value: "min", label: "Tight" },
-  { value: "middle", label: "Middle" },
-  { value: "max", label: "Loose" },
+const AIM_OPTIONS: { value: Aim; key: string }[] = [
+  { value: "min", key: "aim.min" },
+  { value: "middle", key: "aim.middle" },
+  { value: "max", key: "aim.max" },
 ];
 
 export function ServiceSheet() {
+  const t = useT();
   const {
     ready,
     engine,
@@ -39,7 +42,7 @@ export function ServiceSheet() {
   } = useRecords();
 
   if (!ready) {
-    return <p className="p-4 text-sm text-faint">Loading…</p>;
+    return <p className="p-4 text-sm text-faint">{t("common.loading")}</p>;
   }
 
   const status = sheetStatus(engine, active, aim);
@@ -57,7 +60,7 @@ export function ServiceSheet() {
           .join(" · ")}
         action={
           <Button variant="ghost" onClick={startNew}>
-            New service
+            {t("sheet.newService")}
           </Button>
         }
       />
@@ -73,7 +76,7 @@ export function ServiceSheet() {
             column, so Bike / Name / Model / Year keep the widths they were
             given when they were fitted onto one row. */}
         <div className="grid gap-2.5 sm:grid-cols-[repeat(4,minmax(0,1fr))_auto]">
-          <Field label="Bike">
+          <Field label={t("sheet.bike")}>
             <div className="flex items-stretch gap-1.5">
               <select
                 value={bike.id}
@@ -92,8 +95,8 @@ export function ServiceSheet() {
               <button
                 type="button"
                 onClick={addBike}
-                aria-label="Add another bike"
-                title="Add another bike"
+                aria-label={t("sheet.addBike")}
+                title={t("sheet.addBike")}
                 className="shrink-0 rounded-lg bg-raised px-3 text-lg font-bold leading-none text-ink ring-1 ring-line transition-colors hover:bg-line"
               >
                 +
@@ -101,23 +104,23 @@ export function ServiceSheet() {
             </div>
           </Field>
 
-          <Field label="Name">
+          <Field label={t("sheet.name")}>
             <input
               type="text"
-              placeholder="e.g. Orange one"
+              placeholder={t("sheet.namePlaceholder")}
               value={bike.name}
               onChange={(e) => updateBike({ name: e.target.value })}
               className="w-full rounded-lg border border-line bg-bg px-2.5 py-2 text-sm text-ink outline-none placeholder:text-faint/50 focus:border-accent"
             />
           </Field>
 
-          <Field label="Model">
+          <Field label={t("sheet.model")}>
             <select
               value={bike.modelId ?? ""}
               onChange={(e) => updateBike({ modelId: e.target.value || undefined })}
               className="w-full rounded-lg border border-line bg-bg px-2.5 py-2 text-sm text-ink outline-none focus:border-accent"
             >
-              <option value="">Choose…</option>
+              <option value="">{t("common.choose")}</option>
               {BIKE_MODEL_GROUPS.map((group) => (
                 <optgroup key={group.label} label={group.label}>
                   {group.models.map((model) => (
@@ -130,7 +133,7 @@ export function ServiceSheet() {
             </select>
           </Field>
 
-          <Field label="Year">
+          <Field label={t("sheet.year")}>
             <select
               value={bike.year ?? ""}
               onChange={(e) =>
@@ -141,7 +144,7 @@ export function ServiceSheet() {
               {/* Optional, and says so: plenty of people do not know the year
                   of a bike they bought second-hand, and refusing their service
                   history over it would be a poor trade. */}
-              <option value="">Not sure</option>
+              <option value="">{t("common.notSure")}</option>
               {MODEL_YEARS.map((year) => (
                 <option key={year} value={year}>
                   {year}
@@ -161,7 +164,7 @@ export function ServiceSheet() {
             would quietly produce wrong averages forever. This is what tells
             the pool which one it is being handed.
           */}
-          <Field label="Units">
+          <Field label={t("sheet.units")}>
             <select
               value={bike.units ?? "km"}
               onChange={(e) =>
@@ -178,8 +181,7 @@ export function ServiceSheet() {
         {/* Out of the label so the three columns sit level; prefixed so it is
             still obvious which field it belongs to. */}
         <p className="mt-2 text-[11px] leading-relaxed text-faint">
-          Name — unique to this bike… for those who are greedy/wise and have more
-          than one
+          {t("sheet.nameHint")}
         </p>
 
         {/* Keyed on the bike so switching bikes reloads the field rather than
@@ -192,7 +194,10 @@ export function ServiceSheet() {
             onClick={() => {
               if (
                 confirm(
-                  `Delete "${bike.name}" and all ${records.length} of its services? This can't be undone.`,
+                  t("sheet.removeBikeConfirm", {
+                    name: bike.name,
+                    count: records.length,
+                  }),
                 )
               ) {
                 removeBike(bike.id);
@@ -200,14 +205,14 @@ export function ServiceSheet() {
             }}
             className="mt-2 text-[11px] font-semibold text-bad underline underline-offset-2"
           >
-            remove this bike
+            {t("sheet.removeBike")}
           </button>
         )}
       </Card>
 
       <Card className="mb-4 p-3">
         <div className="grid grid-cols-2 gap-2.5">
-          <Field label="Date">
+          <Field label={t("sheet.date")}>
             <input
               type="date"
               value={active.date || todayIso()}
@@ -217,11 +222,11 @@ export function ServiceSheet() {
               className="w-full rounded-lg border border-line bg-bg px-2.5 py-2 text-sm text-ink outline-none focus:border-accent"
             />
           </Field>
-          <Field label={`Odometer (${unitLabel(bike.units)})`}>
+          <Field label={t("sheet.odometer", { unit: unitLabel(bike.units) })}>
             <input
               type="text"
               inputMode="numeric"
-              placeholder="e.g. 47504"
+              placeholder={t("sheet.odometerPlaceholder")}
               value={active.odometer ?? ""}
               onChange={(e) => {
                 const digits = e.target.value.replace(/[^\d]/g, "");
@@ -235,10 +240,10 @@ export function ServiceSheet() {
           </Field>
         </div>
         <div className="mt-2.5">
-          <Field label="Note (optional)">
+          <Field label={t("sheet.note")}>
             <input
               type="text"
-              placeholder="e.g. found — before adjustment"
+              placeholder={t("sheet.notePlaceholder")}
               value={active.title ?? ""}
               onChange={(e) =>
                 updateActive((r) => ({ ...r, title: e.target.value || undefined }))
@@ -251,9 +256,12 @@ export function ServiceSheet() {
 
       <div className="mb-4 flex flex-wrap items-center gap-2 text-xs">
         <Chip tone={status.measured === status.total ? "ok" : "neutral"}>
-          {status.measured}/{status.total} measured
+          {t("sheet.measured", {
+            measured: status.measured,
+            total: status.total,
+          })}
         </Chip>
-        {status.good > 0 && <Chip tone="ok">{status.good} good</Chip>}
+        {status.good > 0 && <Chip tone="ok">{t("sheet.good", { count: status.good })}</Chip>}
         {status.outOfSpec > 0 && (
           <Chip tone="bad">{status.outOfSpec} out of spec</Chip>
         )}
@@ -265,7 +273,7 @@ export function ServiceSheet() {
             href="/order"
             className="font-semibold text-accent underline underline-offset-2"
           >
-            see order list
+            {t("sheet.seeOrderList")}
           </Link>
         )}
       </div>
@@ -273,23 +281,28 @@ export function ServiceSheet() {
       <Card className="mb-5 p-3">
         <div className="mb-2 flex items-baseline justify-between gap-2">
           <h3 className="text-xs font-bold uppercase tracking-wide text-muted">
-            Aim inside the band
+            {t("sheet.aimHeading")}
           </h3>
           <Link
             href="/notes"
             className="text-[11px] font-semibold text-accent underline underline-offset-2"
           >
-            why?
+            {t("sheet.aimWhy")}
           </Link>
         </div>
         <div className="flex flex-wrap gap-x-5 gap-y-2">
           {(["intake", "exhaust"] as ValveType[]).map((type) => (
             <div key={type} className="flex items-center gap-2">
-              <span className="text-xs capitalize text-muted">{type}</span>
+              <span className="text-xs capitalize text-muted">
+                {t(`valveType.${type}`)}
+              </span>
               <Segmented
-                label={`Aim for ${type}`}
+                label={t("sheet.aimFor", { type: t(`valveType.${type}`) })}
                 value={aim[type]}
-                options={AIM_OPTIONS}
+                options={AIM_OPTIONS.map((option) => ({
+                  value: option.value,
+                  label: t(option.key),
+                }))}
                 onChange={(value) => setAim(type, value)}
               />
             </div>
@@ -342,9 +355,22 @@ export function ServiceSheet() {
         ))}
       </div>
 
+      {/* Under the valves, because that is the order the work happens in. Empty
+          stays undefined rather than an empty array: a record with nothing
+          ticked and a record written before this existed are the same record,
+          and storing them the same way keeps them that way. */}
+      <ServiceItems
+        items={active.items ?? []}
+        onChange={(items) =>
+          updateActive((r) => ({
+            ...r,
+            items: items.length ? items : undefined,
+          }))
+        }
+      />
+
       <p className="mt-5 text-center text-[11px] leading-relaxed text-faint">
-        Saved on this device as you type. Use of this calculator is at your own
-        risk — check everything before you build it up.
+        {t("sheet.disclaimer")}
       </p>
     </div>
   );
@@ -372,6 +398,7 @@ function VinField({
   bike: Bike;
   updateBike: (patch: Partial<Omit<Bike, "id">>) => void;
 }) {
+  const t = useT();
   const [draft, setDraft] = useState(bike.vin ?? "");
   const typed = draft.trim();
   const check = typed ? checkVin(typed) : null;
@@ -404,8 +431,8 @@ function VinField({
     <div className="mt-3 border-t border-line pt-3">
       <label className="block">
         <span className="mb-1 flex flex-wrap items-baseline justify-between gap-x-2 text-[11px] font-medium text-faint">
-          <span>Frame number (VIN)</span>
-          <span className="font-normal">17 characters, on the steering head</span>
+          <span>{t("vin.label")}</span>
+          <span className="font-normal">{t("vin.hint")}</span>
         </span>
         <input
           type="text"
@@ -416,7 +443,7 @@ function VinField({
           autoCorrect="off"
           autoComplete="off"
           spellCheck={false}
-          placeholder="VBK…"
+          placeholder={t("vin.placeholder")}
           value={draft}
           onChange={(e) => commit(e.target.value)}
           // Room for the spaces people type while keeping their place, without
@@ -428,9 +455,7 @@ function VinField({
 
       {!check && (
         <p className="mt-1.5 text-[11px] leading-relaxed text-faint">
-          Opens this bike&rsquo;s history, its charts and the shared comparison —
-          and is how a workshop, or whoever owns it next, finds the machine
-          again. The pool only ever sees a scrambled version, never the number.
+          {t("vin.explain")}
         </p>
       )}
 
@@ -455,7 +480,7 @@ function VinField({
               onClick={() => updateBike({ year: check.year })}
               className="rounded-md bg-raised px-2 py-0.5 text-[11px] font-semibold text-accent ring-1 ring-line transition-colors hover:bg-line"
             >
-              Set year to {check.year}
+              {t("vin.setYear", { year: check.year })}
             </button>
           )}
         </div>

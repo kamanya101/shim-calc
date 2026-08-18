@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { APP_DESCRIPTION, APP_NAME, APP_SHORT_NAME } from "@/lib/app";
 import { AuthProvider } from "@/components/AuthProvider";
 import { Footer } from "@/components/Footer";
+import { LocaleProvider } from "@/components/LocaleProvider";
 import { RecordsProvider } from "@/components/RecordsProvider";
 import { SyncProvider } from "@/components/SyncProvider";
 import { TabBar } from "@/components/TabBar";
@@ -40,7 +41,17 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="h-full antialiased">
+      {/*
+        Language sits outermost. A screen that fails to load a rider bikes
+        still has to be able to say so in their own words, so nothing below
+        this can be the thing that decides which language that is.
+
+        The lang attribute above starts as "en" and is corrected on the client
+        once the choice is known — see LocaleProvider. It cannot be right here,
+        because this html is prerendered at build time and shared by everyone.
+      */}
       <body className="min-h-full">
+        <LocaleProvider>
         <RecordsProvider>
           <AuthProvider>
             <SyncProvider>
@@ -50,6 +61,7 @@ export default function RootLayout({
             </SyncProvider>
           </AuthProvider>
         </RecordsProvider>
+        </LocaleProvider>
         <ServiceWorker />
       </body>
     </html>
