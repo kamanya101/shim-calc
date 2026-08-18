@@ -33,16 +33,16 @@ export const SERVICE_ITEMS: ServiceItem[] = [
   { id: "air-filter", label: "Air Filter" },
   { id: "oil-filter", label: "Oil Filter" },
   { id: "coolant", label: "Coolant" },
-  // Brake Pads sits alongside Front Pads and Rear Pads deliberately, and is
-  // not to be collapsed into them. They overlap -- one rider ticks the general
-  // one, another ticks both specific ones, for the same job -- which will make
-  // any pooled count of pad changes read low until it is reconciled. Andrew
-  // was asked and kept all three: riders record the work the way they think
-  // about it, and a list that argues with them is a list they stop filling in.
-  { id: "brake-pads", label: "Brake Pads" },
   { id: "chain", label: "Chain" },
   { id: "front-sprocket", label: "Front Sprocket" },
   { id: "rear-sprocket", label: "Rear Sprocket" },
+  // Pads are recorded by which end, and there is deliberately no general
+  // "Brake Pads" sitting alongside these. One existed briefly and was taken
+  // out: with all three offered, one rider ticks the general entry while the
+  // next ticks both specific ones for the very same job, and nothing counting
+  // them afterwards can tell those two cases apart — so any figure for how
+  // often pads get changed reads low, permanently and invisibly. Asking a
+  // rider which end is the smaller cost.
   { id: "front-pads", label: "Front Pads" },
   { id: "rear-pads", label: "Rear Pads" },
   { id: "battery", label: "Battery" },
