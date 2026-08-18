@@ -8,6 +8,7 @@ import { downloadFile, sortRecords } from "@/lib/storage";
 import { AccountCard } from "./AccountCard";
 import { BikeTabs } from "./BikeTabs";
 import { ContributionCard } from "./ContributionCard";
+import { LegacyImport } from "./LegacyImport";
 import { useRecords } from "./RecordsProvider";
 import { AverageDrift, TrendChart } from "./TrendChart";
 import { Button, Card, Chip, PageHeader } from "./ui";
@@ -104,6 +105,9 @@ export function History() {
                       {formatDate(record.date)}
                     </span>
                     {isActive && <Chip tone="warn">open</Chip>}
+                    {record.source === "import" && (
+                      <Chip tone="neutral">imported</Chip>
+                    )}
                   </div>
                   {record.title && (
                     <p className="mt-0.5 truncate text-xs text-muted">
@@ -160,6 +164,14 @@ export function History() {
         <AccountCard />
         <ContributionCard />
       </div>
+
+      {/*
+        Outside the frame-number gate, alongside backup and for the same
+        reason: a rider's own records are theirs whether or not the app can yet
+        tell which motorcycle they belong to. What waits on the VIN is reading
+        the history back, not getting it in.
+      */}
+      <LegacyImport />
 
       <h2 className="mt-6 mb-2 text-sm font-bold">Backup</h2>
       <p className="mb-2 text-xs leading-relaxed text-faint">

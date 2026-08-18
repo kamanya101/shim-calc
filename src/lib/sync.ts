@@ -61,6 +61,7 @@ type RecordRow = {
   odometer: number | null;
   title: string | null;
   items: string[] | null;
+  source: string | null;
   readings: Record<string, ValveReading>;
   created_at: string;
   updated_at: string;
@@ -111,6 +112,12 @@ const toRecord = (row: RecordRow): ServiceRecord => ({
   // would otherwise arrive in an arbitrary sequence and read as a change on
   // every reconcile.
   items: row.items?.length ? sortItems(row.items) : undefined,
+  // Only the one value this app writes is honoured; anything else the server
+  // holds is read as unset, the same way units are. Erring that way is safe
+  // here in a way it is not for most fields — an unrecognised marker becomes a
+  // confirmed measurement, so it is the rider's own history that decides, and
+  // a service they never confirmed simply gets flagged for confirming again.
+  source: row.source === "import" ? "import" : undefined,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
   deletedAt: row.deleted_at ?? undefined,
@@ -126,6 +133,7 @@ const toRecordRow = (record: ServiceRecord, userId: string): RecordRow => ({
   title: record.title ?? null,
   readings: record.readings ?? {},
   items: record.items ?? null,
+  source: record.source ?? null,
   created_at: record.createdAt,
   updated_at: record.updatedAt,
   deleted_at: record.deletedAt ?? null,

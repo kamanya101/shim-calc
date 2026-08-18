@@ -196,6 +196,22 @@ export type ServiceRecord = {
    * the right answer.
    */
   items?: string[];
+  /**
+   * Set when this service was reconstructed from the rider's old spreadsheets
+   * rather than measured into the app. See legacyImport.ts.
+   *
+   * It is kept because an imported reading is a different kind of thing from a
+   * typed one. Somebody read a decade-old sheet, an assistant guessed which
+   * column was which, and a date may have been supplied from memory. That is
+   * good enough to chart a rider's own wear — which is the whole reason they
+   * imported it — and not good enough to quietly become part of the averages
+   * every other rider is comparing themselves against. So the pool leaves
+   * these alone until the rider has looked at them and said they are right.
+   *
+   * Absent means typed here, which is every record written before this
+   * existed. No migration: the old case and the honest case are the same case.
+   */
+  source?: "import";
   createdAt: string;
   updatedAt: string;
   /**

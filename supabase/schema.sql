@@ -143,6 +143,19 @@ create table if not exists public.service_records (
 alter table public.service_records
   add column if not exists items text[];
 
+-- Where the service came from: 'import' for one reconstructed from a rider's
+-- old spreadsheets, null for one measured into the app.
+--
+-- It has to travel with the row, not just sit on the device that did the
+-- import. The marker is what keeps a reconstructed reading out of the shared
+-- averages until its owner has confirmed it, and a marker that did not sync
+-- would be no protection at all: the service would go up from the phone, come
+-- back down to the tablet as an ordinary measurement, and be contributed from
+-- there. Same reasoning as items — added separately, null for everything
+-- written before it existed, which is the honest answer for all of them.
+alter table public.service_records
+  add column if not exists source text;
+
 -- Sync pulls everything for one rider on every reconcile.
 create index if not exists service_records_user_idx
   on public.service_records (user_id);

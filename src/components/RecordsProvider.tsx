@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import type { Aim } from "@/lib/calc";
 import { DEFAULT_ENGINE_ID, getEngine } from "@/lib/engines";
+import { toRecords, type ImportedService } from "@/lib/legacyImport";
 import { runMigrations } from "@/lib/migrations";
 import { type AimSettings } from "@/lib/report";
 import { useHydrated, useLocalStore } from "@/lib/store";
@@ -64,6 +65,13 @@ type RecordsContext = {
   startNew: () => void;
   duplicateAsNew: (id: string) => void;
   remove: (id: string) => void;
+  /** Write reconstructed services onto the selected bike. Returns how many. */
+  addImported: (services: ImportedService[]) => number;
+  /**
+   * Accept the selected bike's imported services as real measurements, which
+   * is what lets them into the shared averages. See `source` on ServiceRecord.
+   */
+  confirmImported: () => void;
   importJson: (raw: string) => ImportResult;
   /**
    * A complete backup, deletion markers included. A function rather than a
@@ -222,6 +230,36 @@ export function RecordsProvider({ children }: { children: React.ReactNode }) {
     [rawRecords, activeId, bike.id],
   );
 
+  /**
+   * Everything arrives in one write rather than one per service, so a paste of
+   * a dozen services is a single entry in the store and a single sync — and so
+   * that a batch cannot half-land if something goes wrong part way down it.
+   */
+  const addImported = useCallback(
+    (services: ImportedService[]): number => {
+      const current = ensureBike();
+      const built = toRecords(services, getEngine(current.engineId), current.id);
+      if (!built.length) return 0;
+      recordsStore.set([...built, ...recordsStore.get()]);
+      return built.length;
+    },
+    [ensureBike],
+  );
+
+  const confirmImported = useCallback(() => {
+    const now = new Date().toISOString();
+    recordsStore.set(
+      recordsStore.get().map((record) => {
+        if (record.bikeId !== bike.id || record.source !== "import") return record;
+        // updatedAt moves because this is an edit like any other: it is what
+        // decides the winner if the same service was also touched elsewhere.
+        const confirmed = { ...record, updatedAt: now };
+        delete confirmed.source;
+        return confirmed;
+      }),
+    );
+  }, [bike.id]);
+
   const importJson = useCallback(
     (raw: string): ImportResult => {
       const result = mergeImport(rawBikes, rawRecords, raw, DEFAULT_ENGINE_ID);
@@ -268,6 +306,8 @@ export function RecordsProvider({ children }: { children: React.ReactNode }) {
     startNew,
     duplicateAsNew,
     remove,
+    addImported,
+    confirmImported,
     importJson,
     exportBundle,
   };

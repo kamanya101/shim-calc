@@ -167,7 +167,16 @@ export async function buildContribution(
     // A service whose bike has been deleted goes too. The bike is the thing
     // that was sold or written off; leaving its services in the pool while it
     // is gone from the app would be a state the rider cannot see or correct.
-    const gone = Boolean(record.deletedAt) || Boolean(bike.deletedAt);
+    //
+    // An unconfirmed import is held back on the same footing, and by the same
+    // machinery: it is not a measurement anybody made, it is what an assistant
+    // made of an old spreadsheet. Withheld rather than merely skipped, so that
+    // a service confirmed and later un-confirmed — or imported on one device
+    // and read on another — is taken back out rather than left behind.
+    const gone =
+      Boolean(record.deletedAt) ||
+      Boolean(bike.deletedAt) ||
+      record.source === "import";
 
     const serviceKey = gone ? "" : await poolKey(token, "service", record.id);
     const bikeKey = gone ? "" : await poolKey(token, "bike", bike.id);
@@ -229,6 +238,9 @@ export function countShareable(
 
   for (const record of records) {
     if (record.deletedAt || !live.has(record.bikeId)) continue;
+    // Counted the same way buildContribution files them, or the consent card
+    // would promise readings that are never sent.
+    if (record.source === "import") continue;
     const measured = Object.values(record.readings).filter(
       (reading) => reading?.clearance !== undefined,
     ).length;
