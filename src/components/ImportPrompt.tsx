@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { bikeTag, buildImportPrompt } from "@/lib/importPrompt";
 import { downloadFile } from "@/lib/storage";
 import { useRecords } from "./RecordsProvider";
@@ -23,6 +23,24 @@ export function ImportPrompt() {
 
   const tag = bikeTag(bike.name);
   const prompt = buildImportPrompt(engine, tag);
+
+  /**
+   * Land on the section when the page is opened straight at it.
+   *
+   * The browser does its own jump on load, and by then this is not on the
+   * page: everything below the sign-in gate waits for hydration to say who is
+   * signed in, so the anchor appears a moment after the scroll that was meant
+   * to find it. Following the link from inside the app works without this —
+   * the app is already up — which is exactly why it would have gone unnoticed
+   * until somebody shared the URL.
+   *
+   * Runs on mount, which is the moment the gate opened, and only for this
+   * hash, so an ordinary visit to Notes still starts at the top.
+   */
+  useEffect(() => {
+    if (window.location.hash !== "#import") return;
+    document.getElementById("import")?.scrollIntoView();
+  }, []);
 
   const copy = async () => {
     try {
