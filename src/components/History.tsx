@@ -52,7 +52,7 @@ export function History() {
         title="History"
         subtitle={
           bikes.length > 1
-            ? `Services for ${bike.name}`
+            ? `Services for ${bike.name.trim() || "this bike"}`
             : "Every service you've saved on this device"
         }
       />

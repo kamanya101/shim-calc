@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { formatDate, formatOdometer } from "@/lib/format";
+import { formatDate, formatOdometer, unitLabel } from "@/lib/format";
 import { bikeTag } from "@/lib/importPrompt";
 import {
   isImportable,
@@ -24,43 +24,79 @@ import { Button, Card, Chip } from "./ui";
  * the shared averages.
  */
 export function LegacyImport() {
-  const { engine, bike, records, addImported, confirmImported } = useRecords();
+  const {
+    engine,
+    bike,
+    bikes,
+    bikeSaved,
+    records,
+    setActiveBikeId,
+    updateBike,
+    addImported,
+    confirmImported,
+  } = useRecords();
   const [raw, setRaw] = useState("");
-  const [parsed, setParsed] = useState<ParsedImport | null>(null);
+  const [services, setServices] = useState<ImportedService[] | null>(null);
+  const [fileIssues, setFileIssues] = useState<ParsedImport["issues"]>([]);
+  const [pastedTag, setPastedTag] = useState<string | undefined>();
   const [error, setError] = useState<string | null>(null);
   const [added, setAdded] = useState<number | null>(null);
+  const [newName, setNewName] = useState("");
 
   const imported = records.filter((record) => record.source === "import");
-  const tag = bikeTag(bike.name);
+
+  /**
+   * No motorcycle to file these against yet — either nothing has been saved,
+   * or what was saved never got a name.
+   *
+   * Both are stopped here rather than only the first. Somebody importing ten
+   * years of history is exactly the person likely to end up with a second
+   * bike, and two of them called nothing at all is a mess that has to be
+   * untangled service by service afterwards.
+   */
+  const unnamed = !bikeSaved || !bike.name.trim();
 
   const check = () => {
     setAdded(null);
     const result = parseLegacyImport(raw, engine, records);
     if (!result.ok) {
       setError(result.error);
-      setParsed(null);
+      setServices(null);
       return;
     }
     setError(null);
-    setParsed(result.value);
+    setServices(result.value.services);
+    setFileIssues(result.value.issues);
+    setPastedTag(result.value.bikeTag);
   };
 
   const reset = () => {
     setRaw("");
-    setParsed(null);
+    setServices(null);
+    setFileIssues([]);
+    setPastedTag(undefined);
     setError(null);
   };
 
-  const commit = () => {
-    if (!parsed) return;
-    const count = addImported(parsed.services);
-    setAdded(count);
-    setRaw("");
-    setParsed(null);
+  const setOdometer = (index: number, odometer: number | undefined) => {
+    setServices((current) =>
+      current
+        ? current.map((service, i) =>
+            i === index ? { ...service, odometer } : service,
+          )
+        : current,
+    );
   };
 
-  const usable = parsed?.services.filter(isImportable) ?? [];
-  const wrongBike = Boolean(parsed?.bikeTag && parsed.bikeTag !== tag);
+  const commit = () => {
+    if (!services) return;
+    const count = addImported(services);
+    setAdded(count);
+    reset();
+  };
+
+  const usable = services?.filter(isImportable) ?? [];
+  const wrongBike = Boolean(pastedTag && pastedTag !== bikeTag(bike.name));
 
   return (
     <>
@@ -77,23 +113,82 @@ export function LegacyImport() {
       </p>
 
       <Card className="p-3">
-        <textarea
-          value={raw}
-          onChange={(event) => setRaw(event.target.value)}
-          rows={4}
-          placeholder="Paste what the assistant gave you"
-          className="w-full resize-y rounded-lg bg-bg px-3 py-2 font-mono text-xs text-ink ring-1 ring-line outline-none focus:ring-accent"
-        />
-        <div className="mt-2 flex flex-wrap gap-2">
-          <Button variant="accent" onClick={check} disabled={!raw.trim()}>
-            See what is in it
-          </Button>
-          {(raw || parsed) && (
-            <Button variant="ghost" onClick={reset}>
-              Clear
-            </Button>
-          )}
-        </div>
+        {/*
+          Which motorcycle comes first, before the paste box, and it is a
+          choice rather than something inferred. A history filed against the
+          wrong bike looks entirely correct from the outside and quietly ruins
+          two sets of wear trends — and the rider is the only one who can
+          actually tell them apart.
+        */}
+        {unnamed ? (
+          <div>
+            <h3 className="text-sm font-semibold">
+              Name your bike before you start
+            </h3>
+            <p className="mt-1 text-xs leading-relaxed text-muted">
+              These services have to belong to a motorcycle. Give it whatever
+              you call it — you can add more bikes later, and nothing is ever
+              matched on the name.
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <input
+                value={newName}
+                onChange={(event) => setNewName(event.target.value)}
+                placeholder="The orange one"
+                className="min-w-0 flex-1 rounded-lg bg-bg px-3 py-2 text-sm text-ink ring-1 ring-line outline-none focus:ring-accent"
+              />
+              <Button
+                variant="accent"
+                disabled={!newName.trim()}
+                onClick={() => {
+                  updateBike({ name: newName.trim() });
+                  setNewName("");
+                }}
+              >
+                Save
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-semibold text-muted">
+              Which bike are these for?
+            </span>
+            <select
+              value={bike.id}
+              onChange={(event) => setActiveBikeId(event.target.value)}
+              className="w-full rounded-lg bg-bg px-3 py-2 text-sm text-ink ring-1 ring-line outline-none focus:ring-accent"
+            >
+              {bikes.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+
+        {!unnamed && (
+          <>
+            <textarea
+              value={raw}
+              onChange={(event) => setRaw(event.target.value)}
+              rows={4}
+              placeholder="Paste what the assistant gave you"
+              className="mt-3 w-full resize-y rounded-lg bg-bg px-3 py-2 font-mono text-xs text-ink ring-1 ring-line outline-none focus:ring-accent"
+            />
+            <div className="mt-2 flex flex-wrap gap-2">
+              <Button variant="accent" onClick={check} disabled={!raw.trim()}>
+                See what is in it
+              </Button>
+              {(raw || services) && (
+                <Button variant="ghost" onClick={reset}>
+                  Clear
+                </Button>
+              )}
+            </div>
+          </>
+        )}
 
         {error && (
           <p className="mt-2 rounded-lg bg-bad/10 p-2.5 text-xs leading-relaxed text-bad">
@@ -105,19 +200,55 @@ export function LegacyImport() {
           <p className="mt-2 rounded-lg bg-ok/10 p-2.5 text-xs leading-relaxed text-ok">
             {added === 0
               ? "Nothing was added — everything in that paste was either already here or had something wrong with it."
-              : `Added ${added} ${added === 1 ? "service" : "services"}. Check one against the original sheet before you trust the rest.`}
+              : `Added ${added} ${added === 1 ? "service" : "services"} to ${bike.name}. Check one against the original sheet before you trust the rest.`}
           </p>
         )}
 
-        {parsed && (
-          <Preview
-            parsed={parsed}
-            usable={usable.length}
-            wrongBike={wrongBike}
-            bikeName={bike.name}
-            units={bike.units}
-            onCommit={commit}
-          />
+        {services && (
+          <div className="mt-3 border-t border-line pt-3">
+            <p className="text-sm font-semibold">
+              {usable.length === 0
+                ? "Nothing here can be added yet"
+                : `Adding ${usable.length} ${usable.length === 1 ? "service" : "services"} to ${bike.name}`}
+            </p>
+
+            {wrongBike && (
+              <p className="mt-2 rounded-lg bg-warn/10 p-2.5 text-xs leading-relaxed text-warn">
+                These are tagged &ldquo;{pastedTag}&rdquo;, which is not{" "}
+                {bike.name}. If they belong to another bike, choose it above
+                before you add them.
+              </p>
+            )}
+
+            {fileIssues.map((issue, index) => (
+              <p
+                key={index}
+                className="mt-2 rounded-lg bg-warn/10 p-2.5 text-xs leading-relaxed text-warn"
+              >
+                {issue.message}
+              </p>
+            ))}
+
+            <ul className="mt-3 space-y-2">
+              {services.map((service, index) => (
+                <ServiceRow
+                  key={index}
+                  service={service}
+                  units={bike.units}
+                  onOdometer={(value) => setOdometer(index, value)}
+                />
+              ))}
+            </ul>
+
+            {usable.length > 0 && (
+              <div className="mt-3">
+                <Button variant="accent" onClick={commit}>
+                  Add {usable.length}{" "}
+                  {usable.length === 1 ? "service" : "services"}
+                </Button>
+              </div>
+            )}
+          </div>
         )}
       </Card>
 
@@ -154,79 +285,22 @@ export function LegacyImport() {
   );
 }
 
-function Preview({
-  parsed,
-  usable,
-  wrongBike,
-  bikeName,
-  units,
-  onCommit,
-}: {
-  parsed: ParsedImport;
-  usable: number;
-  wrongBike: boolean;
-  bikeName: string;
-  units: "km" | "mi" | undefined;
-  onCommit: () => void;
-}) {
-  return (
-    <div className="mt-3 border-t border-line pt-3">
-      <p className="text-sm font-semibold">
-        {usable === 0
-          ? "Nothing here can be added"
-          : `Adding ${usable} ${usable === 1 ? "service" : "services"} to ${bikeName}`}
-      </p>
-
-      {/*
-        The wrong-bike warning outranks everything else on this panel. Every
-        other problem shows itself later — a strange number on a chart, a date
-        out of place — but a history filed against the wrong motorcycle looks
-        entirely correct from the outside and quietly ruins both bikes' wear
-        trends.
-      */}
-      {wrongBike && (
-        <p className="mt-2 rounded-lg bg-warn/10 p-2.5 text-xs leading-relaxed text-warn">
-          These are tagged &ldquo;{parsed.bikeTag}&rdquo;, which is not{" "}
-          {bikeName}. If they belong to another bike, switch to it above before
-          you add them.
-        </p>
-      )}
-
-      {parsed.issues.map((issue, index) => (
-        <p
-          key={index}
-          className="mt-2 rounded-lg bg-warn/10 p-2.5 text-xs leading-relaxed text-warn"
-        >
-          {issue.message}
-        </p>
-      ))}
-
-      <ul className="mt-3 space-y-2">
-        {parsed.services.map((service, index) => (
-          <ServiceRow key={index} service={service} units={units} />
-        ))}
-      </ul>
-
-      {usable > 0 && (
-        <div className="mt-3">
-          <Button variant="accent" onClick={onCommit}>
-            Add {usable} {usable === 1 ? "service" : "services"}
-          </Button>
-        </div>
-      )}
-    </div>
-  );
-}
-
 function ServiceRow({
   service,
   units,
+  onOdometer,
 }: {
   service: ImportedService;
   units: "km" | "mi" | undefined;
+  onOdometer: (value: number | undefined) => void;
 }) {
   const ok = isImportable(service);
   const valves = Object.keys(service.readings).length;
+  const blocked = service.issues.some((issue) => issue.level === "error");
+  // The odometer complaint answers itself the moment the rider types one in.
+  const shown = service.issues.filter(
+    (issue) => issue.field !== "odometer" || service.odometer === undefined,
+  );
 
   return (
     <li
@@ -254,9 +328,39 @@ function ServiceRow({
         <p className="mt-0.5 truncate text-xs text-muted">{service.title}</p>
       )}
 
-      {service.issues.length > 0 && (
+      {/*
+        Offered whenever the reading is missing and the service is otherwise
+        sound. There is no point asking somebody to remember an odometer for a
+        service that is going to be thrown out for having its clearances in
+        millimetres.
+      */}
+      {service.odometer === undefined && !blocked && !service.duplicate && (
+        <label className="mt-1.5 flex items-center gap-2">
+          <span className="text-xs font-semibold text-muted">
+            Odometer ({unitLabel(units)})
+          </span>
+          <input
+            type="number"
+            inputMode="numeric"
+            placeholder="49000"
+            onChange={(event) => {
+              const value = Number(event.target.value);
+              onOdometer(
+                event.target.value.trim() === "" ||
+                  !Number.isFinite(value) ||
+                  value < 0
+                  ? undefined
+                  : Math.round(value),
+              );
+            }}
+            className="w-28 rounded-lg bg-surface px-2 py-1 text-sm text-ink ring-1 ring-line outline-none focus:ring-accent"
+          />
+        </label>
+      )}
+
+      {shown.length > 0 && (
         <ul className="mt-1.5 space-y-1">
-          {service.issues.map((issue, index) => (
+          {shown.map((issue, index) => (
             <li
               key={index}
               className={`text-xs leading-relaxed ${

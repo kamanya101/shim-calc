@@ -61,8 +61,12 @@ export function ImportPrompt() {
             body: "Paste the instructions in, then attach your spreadsheets.",
           },
           {
-            heading: "Answer its questions",
-            body: "It will ask about anything it cannot work out — which column is which valve, what the number in a filename means. You know your sheets; it does not.",
+            heading: "It will ask how you stored things — tell it",
+            body: "Two questions come first: how you recorded the odometer reading for each service, and how many files make up one service. Nobody can tell either from the files alone, and everybody did it differently — mine were in the filenames, yours might be in a cell, a folder name, or nowhere at all. Anything it still cannot find a reading for, the app asks you for at the end.",
+          },
+          {
+            heading: "Answer its other questions",
+            body: "It will ask about anything else it cannot work out — which column is which valve, what an abbreviation means. You know your sheets; it does not.",
           },
           {
             heading: "Copy its answer",
@@ -136,9 +140,10 @@ export function ImportPrompt() {
           for the next lot. They merge into one history.
         </p>
         <p>
-          <strong className="text-ink">More than one bike?</strong> Copy the
-          instructions again from each bike. They come tagged, so the app can
-          tell you if you paste one into the wrong place.
+          <strong className="text-ink">More than one bike?</strong> You choose
+          which one you are importing into on the History screen, before you
+          paste. Copy the instructions again from each bike as well — they come
+          tagged, so the app can warn you if the two disagree.
         </p>
         <p>
           Do not include your frame number, or anything else personal, in what

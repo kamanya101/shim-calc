@@ -94,7 +94,7 @@ export function ServiceSheet() {
               </select>
               <button
                 type="button"
-                onClick={addBike}
+                onClick={() => addBike()}
                 aria-label={t("sheet.addBike")}
                 title={t("sheet.addBike")}
                 className="shrink-0 rounded-lg bg-raised px-3 text-lg font-bold leading-none text-ink ring-1 ring-line transition-colors hover:bg-line"

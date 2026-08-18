@@ -39,7 +39,7 @@ export function BikeTabs() {
                   : "border-transparent text-faint hover:text-muted"
               }`}
             >
-              {b.name}
+              {b.name.trim() || "Unnamed bike"}
               {modelLabel(b.modelId, b.year) && (
                 // Real space, not a margin — a margin looks right but copies
                 // and reads aloud as "Old Beast950 Adventure".

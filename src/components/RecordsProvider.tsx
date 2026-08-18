@@ -37,7 +37,7 @@ import type { Bike, EngineSpec, ServiceRecord, ValveType } from "@/lib/types";
  * stable service rather than a new pair on every render. The first edit
  * persists them and they become ordinary records.
  */
-const DRAFT_BIKE_ID = "draft-bike";
+export const DRAFT_BIKE_ID = "draft-bike";
 const DRAFT_RECORD_ID = "draft";
 
 // Before any store is read. An upgrade must never cost somebody their history.
@@ -49,6 +49,17 @@ type RecordsContext = {
   engine: EngineSpec;
   bikes: Bike[];
   bike: Bike;
+  /**
+   * Whether the selected bike has actually been written, as opposed to being
+   * the empty state standing in for one.
+   *
+   * Not something a screen can work out for itself. `bikes` substitutes the
+   * draft when nothing has been saved, so it always has an entry matching the
+   * selected bike, and the draft keeps its own id once persisted — so neither
+   * the list nor the id distinguishes the two states. Only this file sees the
+   * stored array before that substitution.
+   */
+  bikeSaved: boolean;
   /** Services for the selected bike only. */
   records: ServiceRecord[];
   /** Every service across every bike, deleted ones excluded. */
@@ -60,7 +71,7 @@ type RecordsContext = {
   setActiveBikeId: (id: string) => void;
   updateActive: (patch: (record: ServiceRecord) => ServiceRecord) => void;
   updateBike: (patch: Partial<Omit<Bike, "id">>) => void;
-  addBike: () => void;
+  addBike: (name?: string) => void;
   removeBike: (id: string) => void;
   startNew: () => void;
   duplicateAsNew: (id: string) => void;
@@ -110,7 +121,13 @@ export function RecordsProvider({ children }: { children: React.ReactNode }) {
   // Never mutated — every edit produces new objects — so a deleted draft comes
   // back blank rather than carrying the old readings.
   const [draftBike] = useState<Bike>(() => ({
-    ...newBike(DEFAULT_ENGINE_ID, "My LC8"),
+    /*
+     * Deliberately nameless. A default like "My LC8" reads as already filled
+     * in, so it survives — and a garage full of bikes all called My LC8 is no
+     * use to the one person who has to tell them apart. Empty shows the
+     * placeholder and asks the question.
+     */
+    ...newBike(DEFAULT_ENGINE_ID, ""),
     id: DRAFT_BIKE_ID,
   }));
   const [draftRecord] = useState(() =>
@@ -162,13 +179,19 @@ export function RecordsProvider({ children }: { children: React.ReactNode }) {
     [ensureBike],
   );
 
-  const addBike = useCallback(() => {
-    ensureBike();
-    const created = newBike(DEFAULT_ENGINE_ID, `Bike ${bikes.length + 1}`);
-    bikesStore.set([...bikesStore.get(), created]);
-    activeBikeStore.set(created.id);
-    activeStore.set("");
-  }, [bikes.length, ensureBike]);
+  const addBike = useCallback(
+    (name?: string) => {
+      ensureBike();
+      const created = newBike(
+        DEFAULT_ENGINE_ID,
+        name?.trim() || `Bike ${bikes.length + 1}`,
+      );
+      bikesStore.set([...bikesStore.get(), created]);
+      activeBikeStore.set(created.id);
+      activeStore.set("");
+    },
+    [bikes.length, ensureBike],
+  );
 
   const removeBike = useCallback(
     (id: string) => {
@@ -292,6 +315,7 @@ export function RecordsProvider({ children }: { children: React.ReactNode }) {
     engine: getEngine(bike.engineId),
     bikes: bikes.length ? bikes : [draftBike],
     bike,
+    bikeSaved: bikes.some((b) => b.id === bike.id),
     records,
     allRecords,
     active,

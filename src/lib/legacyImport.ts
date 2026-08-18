@@ -26,7 +26,15 @@ import type {
 
 export type Severity = "error" | "warn";
 
-export type Issue = { level: Severity; message: string };
+export type Issue = {
+  level: Severity;
+  message: string;
+  /**
+   * Set on the one issue the rider can answer themselves, so the preview can
+   * stop showing it the moment they have.
+   */
+  field?: "odometer";
+};
 
 export type ImportedService = {
   date: string;
@@ -355,6 +363,18 @@ function readService(
     });
   }
 
+  if (odometer === undefined) {
+    // Not an error in the list — the preview offers a box to type it into, and
+    // saying "add it below" beside an empty field reads as an instruction
+    // rather than a complaint.
+    issues.push({
+      level: "warn",
+      field: "odometer",
+      message:
+        "No odometer reading. The assistant couldn't find one — add it below, or this service can't be added.",
+    });
+  }
+
   return {
     date: date || `Service ${index + 1}`,
     odometer,
@@ -464,9 +484,24 @@ function markDuplicates(
   }
 }
 
-/** Whether a service is fit to be written. */
+/**
+ * Whether a service is fit to be written.
+ *
+ * The odometer is required here even though `ServiceRecord` treats it as
+ * optional, and the difference is deliberate. A service typed into the app is
+ * anchored by the day it was done; one recovered from a folder of old files
+ * usually is not, and distance is the only axis its readings mean anything on
+ * — it is what the wear charts plot against and what the shared pool files it
+ * under. A reconstructed service with no reading is a set of numbers with
+ * nowhere to sit. The preview asks for it rather than refusing outright, since
+ * the rider very often knows it even when the file does not say.
+ */
 export function isImportable(service: ImportedService): boolean {
-  return !service.duplicate && !service.issues.some((i) => i.level === "error");
+  return (
+    !service.duplicate &&
+    service.odometer !== undefined &&
+    !service.issues.some((i) => i.level === "error")
+  );
 }
 
 /**

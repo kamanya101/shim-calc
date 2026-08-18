@@ -138,6 +138,27 @@ that I can paste into the app.
 
 The bike: ${engine.name}, ${engine.subtitle}, ${engine.cylinders * engine.valvesPerCylinder} valves.
 
+START BY ASKING ME THESE TWO THINGS, and wait for my answers before you
+convert anything. You cannot work either of them out reliably from the
+files, and getting one wrong gets it wrong for every service:
+
+  1. HOW DID I RECORD THE ODOMETER READING? Every service needs one and
+     it is the field most likely to be missing. It might be in a cell in
+     the sheet, in the filename, in a folder name, in a tab name, written
+     on paper beside the computer, or nowhere at all. Ask me. If you also
+     have a guess from looking at my files, say what it is so I can just
+     confirm it - but ask rather than assume, and if I say it is nowhere,
+     leave the field out and I will type them in myself.
+
+  2. HOW MANY FILES MAKE UP ONE SERVICE? Some people save one file per
+     service. Some save two - a "before" and an "after" - or several.
+     Some keep a whole history in one sheet with a tab or a block per
+     service. Work out what you can from the files, then tell me what you
+     think and let me confirm before you merge or split anything.
+
+Ask about anything else you are unsure of at the same time, so I can
+answer the lot in one go.
+
 WHAT TO PRODUCE - one JSON code block, nothing else:
 
 ${workedExample(engine, sizes).replace("BIKE-TAG", tag)}
@@ -177,11 +198,36 @@ misread a column or a unit, so tell me rather than writing it:
     the nearest stock size.
 ${bands.join("\n")}
 
-ODOMETER: whatever is on the sheet, as written. Don't convert between
-kilometres and miles. It is often not inside the sheet at all but in the
-filename: "45210shimfound.xls" means 45,210. If you spot a pattern like
-that, tell me what you think it means and let me confirm before you
-apply it to all of them.
+ODOMETER: once I have answered question 1, record it exactly as I keep
+it. Don't convert between kilometres and miles, and don't round it.
+
+Never invent a reading, and never carry one service's reading over to
+another. If a particular service has none, leave the field out and say
+which ones - the app asks me for those, and typing in three is a great
+deal better than three quiet guesses.
+
+IF MY FILES CAME FROM THE ORIGINAL SHIM CALCULATOR SPREADSHEET, and many
+of them did, they look like this and you should read them this way:
+
+  - There is a block per valve pair, headed "Left Ex. / Right Ex." or
+    "Left Int. / Right Int.", under "Front Cylinder" and again under
+    "Rear Cylinder".
+  - Inside each block, only two rows are measurements: "Shim" is the
+    shim that was in there, "Gap" is the clearance. Ignore "Ideal shim
+    size", "Order size shim" and "New Tolerance" entirely - the sheet
+    calculated those, and where a measurement was left blank they hold
+    nonsense like -2.389. Never copy a negative number.
+  - Ignore the tall table of sizes and part numbers down the right-hand
+    side. That is the shim catalogue the sheet looked things up in, not
+    anybody's readings.
+  - The sheet has no field for the odometer and no field for the date,
+    which is why question 1 above matters: whatever I did about those, I
+    did outside the file.
+  - If it turns out I saved a "before" and an "after" file for a single
+    service, the before one holds "shim" and "clearance" and the after
+    one holds "chosenShim" and "confirmedClearance", and the two become
+    one record. Don't assume that is what I did - it is one way of many,
+    and question 2 above is what settles it.
 
 DATE: "YYYY-MM-DD", and I need one for every service. If a file has no
 date, ask me. If I don't know, use your best guess and put "date
