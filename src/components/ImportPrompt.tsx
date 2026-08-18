@@ -38,7 +38,16 @@ export function ImportPrompt() {
   };
 
   return (
-    <section className="mt-6">
+    /*
+     * Named so History can link straight here. This section sits a long way
+     * down a long page, and a link that lands on the top of Notes reads as
+     * having gone nowhere — the rider is left to guess that the thing they
+     * were sent for is somewhere below the fold.
+     *
+     * The margin is what stops the heading landing flush against the top edge
+     * of the screen, which looks like the page has been cut off.
+     */
+    <section id="import" className="mt-6 scroll-mt-4">
       <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-accent">
         If you want to import your Excel files
       </h2>

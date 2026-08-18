@@ -104,12 +104,12 @@ export function LegacyImport() {
         Bring in your old spreadsheets
       </h2>
       <p className="mb-2 text-xs leading-relaxed text-faint">
-        Hand the instructions on the{" "}
-        <Link href="/notes" className="text-accent underline">
-          Notes
+        Hand the{" "}
+        <Link href="/notes#import" className="text-accent underline">
+          instructions on the Notes screen
         </Link>{" "}
-        screen to an AI assistant along with your old files, then paste its
-        answer here. Nothing is saved until you have seen what it found.
+        to an AI assistant along with your old files, then paste its answer
+        here. Nothing is saved until you have seen what it found.
       </p>
 
       <Card className="p-3">
