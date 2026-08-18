@@ -39,6 +39,7 @@ export const SERVICE_ITEMS: ServiceItem[] = [
   // any pooled count of pad changes read low until it is reconciled. Andrew
   // was asked and kept all three: riders record the work the way they think
   // about it, and a list that argues with them is a list they stop filling in.
+  { id: "brake-pads", label: "Brake Pads" },
   { id: "chain", label: "Chain" },
   { id: "front-sprocket", label: "Front Sprocket" },
   { id: "rear-sprocket", label: "Rear Sprocket" },
