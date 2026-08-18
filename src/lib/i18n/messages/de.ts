@@ -109,6 +109,16 @@ const de = {
   "vin.setYear": "Baujahr auf {year} setzen",
 
   // ---------------------------------------------------------------------
+  // Das Blatt — wo das Motorrad steht
+  // ---------------------------------------------------------------------
+  "place.city": "Stadt",
+  "place.region": "Region",
+  "place.country": "Land",
+  "place.explain":
+    "Wo das Motorrad steht, denn dagegen verschleißen seine Ventile. Nur das Land gelangt jemals in den gemeinsamen Vergleich, und auch dort nur mit anderen zusammengefasst — der Ort bleibt hier, bei dir.",
+  "place.use": "{place} übernehmen",
+
+  // ---------------------------------------------------------------------
   // Also replaced
   // ---------------------------------------------------------------------
   "items.heading": "Ebenfalls erneuert",
@@ -122,7 +132,6 @@ const de = {
   "part.air-filter": "Luftfilter",
   "part.oil-filter": "Ölfilter",
   "part.coolant": "Kühlmittel",
-  "part.brake-pads": "Bremsbeläge",
   "part.chain": "Kette",
   "part.front-sprocket": "Ritzel",
   "part.rear-sprocket": "Kettenrad",

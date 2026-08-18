@@ -115,6 +115,16 @@ const af = {
   "vin.setYear": "Stel jaar op {year}",
 
   // ---------------------------------------------------------------------
+  // Die blad — waar die fiets bly
+  // ---------------------------------------------------------------------
+  "place.city": "Stad",
+  "place.region": "Streek",
+  "place.country": "Land",
+  "place.explain":
+    "Waar die fiets bly, want dit is waarteen sy kleppe verslyt. Net die land kom ooit by die gedeelde vergelyking uit, en dan altyd saam met ander gegroepeer — die dorp bly hier, by jou.",
+  "place.use": "Gebruik {place}",
+
+  // ---------------------------------------------------------------------
   // Also replaced
   // ---------------------------------------------------------------------
   "items.heading": "Ook vervang",
@@ -128,7 +138,6 @@ const af = {
   "part.air-filter": "Lugfilter",
   "part.oil-filter": "Oliefilter",
   "part.coolant": "Verkoelvloeistof",
-  "part.brake-pads": "Remblokke",
   "part.chain": "Ketting",
   "part.front-sprocket": "Voorste rondsel",
   "part.rear-sprocket": "Agterste rondsel",

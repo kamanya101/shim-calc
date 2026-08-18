@@ -61,6 +61,16 @@ export type PooledReading = {
   month: string | null;
   /** Always kilometres, whatever the bike's own odometer reads in. */
   odometer: number | null;
+  /**
+   * Where the bike lives, as an ISO-3166 alpha-2 code, or null.
+   *
+   * Copied from the bike at the moment it contributes, not looked up later:
+   * the pool has to outlive the bike that fed it, and a country that could
+   * only be recovered by joining back to a bikes row would vanish exactly when
+   * that row went. The coarsest geography worth having — a country does not
+   * narrow a reading to anybody, where a city would.
+   */
+  country: string | null;
   /** The shim that was in there, where it was measured. */
   shim: number | null;
   /** The gap that was found. The reading everything else hangs off. */
@@ -206,6 +216,10 @@ export async function buildContribution(
           record.odometer === undefined
             ? null
             : toKm(record.odometer, bike?.units ?? "km"),
+        // Read off the bike on every push rather than frozen at the first one,
+        // so correcting a country the header guessed wrong reaches every
+        // reading that bike has already contributed.
+        country: bike.country ?? null,
         shim: reading.shim ?? null,
         clearance: reading.clearance,
         chosen_shim: reading.chosenShim ?? null,

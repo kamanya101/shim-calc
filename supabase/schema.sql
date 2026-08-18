@@ -85,6 +85,41 @@ create index if not exists bikes_vin_idx
 -- motorcycle, and after thirty days nobody can touch anything at all.
 alter table public.bikes add column if not exists pool_token text;
 
+-- Where the motorcycle lives, as an ISO-3166 alpha-2 code.
+--
+-- A property of the bike rather than of the rider, for the same reason the
+-- pool token is: what a valve wears against is the dust, heat and roads the
+-- machine sits in, and that stays put when a bike changes hands or gets
+-- serviced by somebody two countries away.
+--
+-- Suggested from the geolocation Vercel puts on the request that created the
+-- bike, and then only ever *suggested* — the rider confirms or corrects it,
+-- the same way the year decoded from a VIN is offered rather than applied.
+-- The header locates the phone, not the motorcycle, and a rider signing up on
+-- holiday or through a VPN would otherwise have their bike quietly filed in
+-- the wrong place with nothing on screen ever saying so.
+--
+-- Null is a first-class answer, not a gap to be filled: no signal when the
+-- bike was created, a rider who cleared it, or any bike saved before this
+-- column existed. Those count towards the global figures and no other.
+alter table public.bikes add column if not exists country text;
+
+-- The rest of the place, at the two grains below a country.
+--
+-- These stay here and go no further. The pool takes the country and nothing
+-- else, deliberately: a pooled reading already carries model, year, month and
+-- odometer, and adding a city to that would name a specific motorcycle in any
+-- town holding two of them — which is the one thing pooled_readings exists not
+-- to do. Anything reading these for a map must aggregate them behind a minimum
+-- count and return places with tallies, never rows.
+--
+-- Kept on the bike rather than duplicated into the pool for a plainer reason
+-- too: the pool holds a row per valve per service, so a city stored there
+-- would be written out some thirty-five times per machine, for a fact that
+-- changes when a bike moves house and at no other time.
+alter table public.bikes add column if not exists region text;
+alter table public.bikes add column if not exists city text;
+
 -- Carry the old printed names over to ids before the old column goes, or the
 -- upgrade would quietly throw away which bike each row was. The old names map
 -- onto the ids exactly — lowercased, spaces to hyphens — and anything that
@@ -307,6 +342,19 @@ create table if not exists public.pooled_readings (
   -- accepted both units would not fail, it would quietly average 60,000 miles
   -- together with 60,000 km as though they were the same distance.
   odometer            integer,
+  -- Where the bike lives, copied from its own row at the moment it contributed
+  -- — an ISO-3166 alpha-2 code, or null. Copied rather than looked up, like
+  -- everything else here: the pool has to outlive the bike that fed it, and a
+  -- reading whose country could only be found by joining back to a bikes row
+  -- would lose its country the day that row went, which is precisely when the
+  -- reading is supposed to keep standing.
+  --
+  -- It is the coarsest geography worth having, and that is deliberate. A city
+  -- would narrow a reading to a handful of machines; a country does not. Any
+  -- read path that groups on this must still apply min_bikes below — a country
+  -- holding one bike is that bike wearing a flag, and filtering to it is the
+  -- obvious way to go looking for somebody in particular.
+  country             text,
   shim                integer,
   clearance           integer not null,
   chosen_shim         integer,
@@ -341,6 +389,13 @@ create table if not exists public.pooled_readings (
 -- their retraction window now rather than pretending they arrived earlier.
 alter table public.pooled_readings
   add column if not exists pooled_at timestamptz not null default now();
+
+-- Likewise. Null for every reading pooled before geography was recorded, which
+-- is the honest answer for all of them — nothing knew where those bikes were,
+-- and inventing a country for them now would be inventing the very signal this
+-- column exists to measure.
+alter table public.pooled_readings
+  add column if not exists country text;
 
 -- The two questions the comparison will ask: one bike's readings for a valve
 -- in odometer order, and every reading for a model.
@@ -421,18 +476,26 @@ begin
 
   insert into public.pooled_readings (
     id, bike_key, service_key, model_id, year, engine_id, position_id,
-    valve_type, month, odometer, shim, clearance, chosen_shim,
+    valve_type, month, odometer, country, shim, clearance, chosen_shim,
     confirmed_clearance, created_at, updated_at
   )
   select
     r.id, r.bike_key, r.service_key, r.model_id, r.year, r.engine_id,
-    r.position_id, r.valve_type, r.month, r.odometer, r.shim, r.clearance,
+    r.position_id, r.valve_type, r.month, r.odometer,
+    -- Two characters, upper case, or nothing. The app sends a code it got from
+    -- a header or from a rider picking off a list, and neither is a promise:
+    -- anything that is not shaped like a country code is stored as no country
+    -- rather than as a new one, so a single malformed value cannot open a
+    -- bucket that then sits in the averages forever.
+    case when r.country ~ '^[A-Za-z]{2}$' then upper(r.country) end,
+    r.shim, r.clearance,
     r.chosen_shim, r.confirmed_clearance, r.created_at, r.updated_at
   from jsonb_to_recordset(coalesce(readings, '[]'::jsonb)) as r (
     id text, bike_key text, service_key text, model_id text, year integer,
     engine_id text, position_id text, valve_type text, month text,
-    odometer integer, shim integer, clearance integer, chosen_shim integer,
-    confirmed_clearance integer, created_at text, updated_at text
+    odometer integer, country text, shim integer, clearance integer,
+    chosen_shim integer, confirmed_clearance integer, created_at text,
+    updated_at text
   )
   -- Re-sending an unchanged service is the normal case, not an error: the id
   -- is derived from the service, so the same reading always lands on the same
@@ -454,6 +517,10 @@ begin
     valve_type          = excluded.valve_type,
     month               = excluded.month,
     odometer            = excluded.odometer,
+    -- Follows the bike. A rider who corrects a country the header guessed
+    -- wrong is telling the pool something true about every reading that bike
+    -- has ever sent, and the next push carries the correction to all of them.
+    country             = excluded.country,
     shim                = excluded.shim,
     clearance           = excluded.clearance,
     chosen_shim         = excluded.chosen_shim,

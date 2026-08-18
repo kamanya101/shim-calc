@@ -67,6 +67,14 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
+  // The API is never cached, and never served from cache. These routes answer
+  // about the request being made right now — where it came from — so a
+  // replayed answer is not a stale one, it is a wrong one: a bike created in
+  // one city would be offered the city of the last bike created on this phone.
+  // Left to the browser entirely, which means it fails offline, which is
+  // correct. Callers treat no answer as no answer.
+  if (url.pathname.startsWith("/api/")) return;
+
   if (isAppPayload(request, url)) {
     event.respondWith(
       fetch(request)

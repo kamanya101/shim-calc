@@ -110,6 +110,16 @@ const en = {
   "vin.setYear": "Set year to {year}",
 
   // ---------------------------------------------------------------------
+  // The sheet — where the bike lives
+  // ---------------------------------------------------------------------
+  "place.city": "City",
+  "place.region": "Region",
+  "place.country": "Country",
+  "place.explain":
+    "Where the bike lives, which is what its valves wear against. Only the country ever reaches the shared comparison, and only ever grouped with others — the town stays here, with you.",
+  "place.use": "Use {place}",
+
+  // ---------------------------------------------------------------------
   // Also replaced
   // ---------------------------------------------------------------------
   "items.heading": "Also replaced",
@@ -123,7 +133,6 @@ const en = {
   "part.air-filter": "Air Filter",
   "part.oil-filter": "Oil Filter",
   "part.coolant": "Coolant",
-  "part.brake-pads": "Brake Pads",
   "part.chain": "Chain",
   "part.front-sprocket": "Front Sprocket",
   "part.rear-sprocket": "Rear Sprocket",

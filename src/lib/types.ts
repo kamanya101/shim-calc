@@ -152,6 +152,34 @@ export type Bike = {
    * which is what every reading saved before this existed was.
    */
   units?: DistanceUnit;
+  /**
+   * Where the motorcycle lives, as an ISO-3166 alpha-2 code.
+   *
+   * On the bike rather than on the rider, for the same reason the pool token
+   * is: what a valve wears against is the dust, heat and roads the machine
+   * sits in, and those stay behind when it is sold or serviced by somebody two
+   * countries away.
+   *
+   * Suggested from where the request that created the bike came from, and only
+   * ever suggested — see `detectCountry`. The rider confirms or corrects it,
+   * the same way the year decoded from a VIN is offered rather than applied,
+   * because the thing being located is a phone and not a motorcycle.
+   *
+   * Undefined is a real answer and stays one: no signal in the garage, a rider
+   * who would rather not say, or any bike saved before this existed.
+   */
+  country?: string;
+  /**
+   * The place below the country, and below that again — both as the request
+   * that created the bike reported them, and both correctable.
+   *
+   * These stay on the bike. The pool takes `country` alone: a pooled reading
+   * already says model, year, month and odometer, and a city on top of that
+   * would name one machine in any town holding two. What reads these for a map
+   * has to aggregate them behind a minimum count.
+   */
+  region?: string;
+  city?: string;
   engineId: string;
   createdAt: string;
   /** Bumped on every edit. Two devices reconcile by keeping the later one. */

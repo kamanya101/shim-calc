@@ -108,6 +108,16 @@ const fr = {
   "vin.setYear": "Régler l’année sur {year}",
 
   // ---------------------------------------------------------------------
+  // La fiche — où vit la moto
+  // ---------------------------------------------------------------------
+  "place.city": "Ville",
+  "place.region": "Région",
+  "place.country": "Pays",
+  "place.explain":
+    "Où vit la moto, car c’est contre cela que ses soupapes s’usent. Seul le pays parvient à la comparaison partagée, et toujours regroupé avec d’autres — la ville reste ici, chez vous.",
+  "place.use": "Utiliser {place}",
+
+  // ---------------------------------------------------------------------
   // Also replaced
   // ---------------------------------------------------------------------
   "items.heading": "Également remplacé",
@@ -121,7 +131,6 @@ const fr = {
   "part.air-filter": "Filtre à air",
   "part.oil-filter": "Filtre à huile",
   "part.coolant": "Liquide de refroidissement",
-  "part.brake-pads": "Plaquettes de frein",
   "part.chain": "Chaîne",
   "part.front-sprocket": "Pignon de sortie de boîte",
   "part.rear-sprocket": "Couronne",

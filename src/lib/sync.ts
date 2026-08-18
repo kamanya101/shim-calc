@@ -46,6 +46,9 @@ type BikeRow = {
   vin: string | null;
   pool_token: string | null;
   units: string | null;
+  country: string | null;
+  region: string | null;
+  city: string | null;
   engine_id: string;
   created_at: string;
   updated_at: string;
@@ -78,6 +81,17 @@ const toBike = (row: BikeRow): Bike => ({
   // Anything the server does not recognise is treated as unset rather than
   // carried through, so a bad value cannot reach the pool as a unit.
   units: row.units === "mi" || row.units === "km" ? row.units : undefined,
+  // Same rule as units: only a value shaped like a country code is honoured,
+  // so whatever else the server may hold is read as unset rather than carried
+  // into the pool as a country of its own.
+  country: /^[A-Za-z]{2}$/.test(row.country ?? "")
+    ? (row.country as string).toUpperCase()
+    : undefined,
+  // Free text from a header, so length is the only thing worth insisting on.
+  // Trimmed to nothing means nothing, rather than an empty place name that
+  // would group with every other empty one on a map.
+  region: row.region?.trim() || undefined,
+  city: row.city?.trim() || undefined,
   engineId: row.engine_id,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
@@ -93,6 +107,9 @@ const toBikeRow = (bike: Bike, userId: string): BikeRow => ({
   vin: bike.vin ?? null,
   pool_token: bike.poolToken ?? null,
   units: bike.units ?? null,
+  country: bike.country ?? null,
+  region: bike.region ?? null,
+  city: bike.city ?? null,
   engine_id: bike.engineId,
   created_at: bike.createdAt,
   updated_at: bike.updatedAt,

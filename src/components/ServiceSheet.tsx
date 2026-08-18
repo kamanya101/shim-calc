@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { APP_NAME } from "@/lib/app";
 import type { Aim } from "@/lib/calc";
 import { groupsByBank } from "@/lib/engines";
@@ -10,6 +10,7 @@ import { BIKE_MODEL_GROUPS, MODEL_YEARS, modelLabel } from "@/lib/models";
 import { sheetStatus } from "@/lib/report";
 import type { Bike, DistanceUnit, ValveType } from "@/lib/types";
 import { checkVin, formatVin } from "@/lib/vin";
+import { detectPlace, placeLabel, type DetectedPlace } from "@/lib/where";
 import { useT } from "./LocaleProvider";
 import { useRecords } from "./RecordsProvider";
 import { ServiceItems } from "./ServiceItems";
@@ -187,6 +188,8 @@ export function ServiceSheet() {
         {/* Keyed on the bike so switching bikes reloads the field rather than
             leaving the previous machine's number sitting in it. */}
         <VinField key={bike.id} bike={bike} updateBike={updateBike} />
+
+        <PlaceField key={`${bike.id}-place`} bike={bike} updateBike={updateBike} />
 
         {bikes.length > 1 && (
           <button
@@ -391,6 +394,111 @@ export function ServiceSheet() {
  * incomplete entry clears it, and what is on screen and what is stored never
  * disagree.
  */
+/**
+ * Where the motorcycle lives.
+ *
+ * Suggested from where the request came from, and never applied on its own —
+ * the same rule as the year a VIN decodes to, and for a stronger reason. The
+ * edge locates a phone at one moment, so a rider who joins in an airport gets
+ * offered a country they have never ridden in. Writing that silently would put
+ * a wrong answer into the shared averages with nothing on screen ever saying
+ * where it came from.
+ *
+ * The country is the only one of the three that reaches the pool. Region and
+ * city stay on this bike, for the rider and for a map that has to aggregate
+ * them behind a minimum count — see the note on `Bike.country`.
+ */
+function PlaceField({
+  bike,
+  updateBike,
+}: {
+  bike: Bike;
+  updateBike: (patch: Partial<Omit<Bike, "id">>) => void;
+}) {
+  const t = useT();
+  const [detected, setDetected] = useState<DetectedPlace>({});
+
+  useEffect(() => {
+    // A suggestion for a field being filled in now, not a fact kept in step:
+    // a bike whose owner moves house is corrected by its owner. detectPlace
+    // remembers a real answer for the session, so switching between bikes
+    // costs nothing after the first.
+    let alive = true;
+    detectPlace().then((place) => {
+      if (alive) setDetected(place);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const stored: DetectedPlace = {
+    country: bike.country,
+    region: bike.region,
+    city: bike.city,
+  };
+  const offered = detected.country || detected.city || detected.region;
+  const differs = offered && placeLabel(detected) !== placeLabel(stored);
+
+  const field =
+    "w-full rounded-lg border border-line bg-bg px-2.5 py-2 text-sm text-ink outline-none focus:border-accent";
+
+  /** Empty means unset, not an empty place name that would group with others. */
+  const set = (patch: Partial<Omit<Bike, "id">>) => updateBike(patch);
+  const trimmed = (value: string) => value.trim() || undefined;
+
+  return (
+    <div className="mt-3">
+      <div className="grid grid-cols-3 gap-2">
+        <Field label={t("place.city")}>
+          <input
+            value={bike.city ?? ""}
+            onChange={(e) => set({ city: trimmed(e.target.value) })}
+            className={field}
+          />
+        </Field>
+        <Field label={t("place.region")}>
+          <input
+            value={bike.region ?? ""}
+            onChange={(e) => set({ region: trimmed(e.target.value) })}
+            className={field}
+          />
+        </Field>
+        <Field label={t("place.country")}>
+          <input
+            value={bike.country ?? ""}
+            maxLength={2}
+            onChange={(e) =>
+              set({ country: trimmed(e.target.value.toUpperCase()) })
+            }
+            className={`${field} font-mono uppercase`}
+          />
+        </Field>
+      </div>
+
+      <p className="mt-2 text-[11px] leading-relaxed text-faint">
+        {t("place.explain")}
+      </p>
+
+      {differs && (
+        <button
+          type="button"
+          onClick={() =>
+            set({
+              country: detected.country,
+              region: detected.region,
+              city: detected.city,
+            })
+          }
+          className="mt-1.5 rounded-md bg-raised px-2 py-0.5 text-[11px] font-semibold text-accent ring-1 ring-line transition-colors hover:bg-line"
+        >
+          {t("place.use", { place: placeLabel(detected) })}
+        </button>
+      )}
+    </div>
+  );
+}
+
 function VinField({
   bike,
   updateBike,
