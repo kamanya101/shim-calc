@@ -3,7 +3,6 @@ import { KTM_LC8 } from "@/lib/engines";
 import { mm } from "@/lib/format";
 import { AUTHOR, NOTES } from "@/lib/notes";
 import { PageHeader } from "@/components/ui";
-import { ImportPrompt } from "@/components/ImportPrompt";
 
 export const metadata = { title: "Notes" };
 
@@ -167,8 +166,6 @@ ideal shim = stack − the gap you want`}
           })}
         </div>
       </section>
-
-      <ImportPrompt />
 
       <section className="mt-6">
         <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-accent">
