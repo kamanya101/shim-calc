@@ -1,7 +1,6 @@
 "use client";
 
 import { DONATE_HANDLE, DONATE_URL } from "@/lib/app";
-import { LanguagePicker } from "./LanguagePicker";
 import { useT } from "./LocaleProvider";
 
 /**
@@ -15,14 +14,10 @@ export function Footer() {
   return (
     <footer className="no-print mx-auto max-w-3xl px-4 pb-6 pt-2">
       {/*
-        The language picker lives here rather than behind a settings screen,
-        and on every page rather than one. Somebody who cannot read the app is
-        not going to find a control by hunting through it, and this app has no
-        settings screen to bury it in anyway. It renders nothing at all while
-        English is the only language available, container included.
+        The language control used to sit here. It has moved to the header of
+        every page — see PageHeader — because the bottom of a screen is the
+        last place somebody who cannot read that screen will look.
       */}
-      <LanguagePicker />
-
       <div className="rounded-xl border border-line bg-surface p-3 text-center">
         <p className="text-xs leading-relaxed text-muted">{t("footer.free")}</p>
         <a

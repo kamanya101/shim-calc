@@ -2,6 +2,8 @@ import { CATALOGUES } from "@/lib/catalogues";
 import { KTM_LC8 } from "@/lib/engines";
 import { mm } from "@/lib/format";
 import { AUTHOR, NOTES } from "@/lib/notes";
+import { PageHeader } from "@/components/ui";
+import { ImportPrompt } from "@/components/ImportPrompt";
 
 export const metadata = { title: "Notes" };
 
@@ -40,10 +42,15 @@ const STEPS = [
 export default function Page() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-5">
-      <h1 className="text-xl font-bold tracking-tight">Notes</h1>
-      <p className="mt-0.5 text-sm text-muted">
-        Read this before you trust anything on the other screens.
-      </p>
+      {/*
+        Shares PageHeader with the other sheets purely so the language button
+        lands in the same place here as everywhere else. The prose below is
+        still English only — see the note in dictionaries.ts.
+      */}
+      <PageHeader
+        title="Notes"
+        subtitle="Read this before you trust anything on the other screens."
+      />
 
       <section className="mt-5">
         <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-accent">
@@ -160,6 +167,8 @@ ideal shim = stack − the gap you want`}
           })}
         </div>
       </section>
+
+      <ImportPrompt />
 
       <section className="mt-6">
         <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-accent">

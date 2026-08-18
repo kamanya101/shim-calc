@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { APP_NAME } from "@/lib/app";
 import { requestPasswordReset, signIn, signUp } from "@/lib/auth";
+import { LanguageButton } from "./LanguageButton";
+import { useT } from "./LocaleProvider";
 import { Button, Card } from "./ui";
 
 type Mode = "in" | "up" | "forgot";
@@ -13,8 +15,15 @@ type Mode = "in" | "up" | "forgot";
  * An account is what lets a history follow somebody from the tablet in the
  * garage to the phone in their pocket. It is asked for once: after this the
  * device remembers, and the app opens with no signal from then on.
+ *
+ * Carries the language button for the same reason every sheet does, only more
+ * so: this screen stands in front of the whole app, and a rider who cannot
+ * read it cannot get past it to find the control anywhere else. The choice
+ * they make here is the same stored setting, so it is still in force once
+ * they are through.
  */
 export function SignIn() {
+  const t = useT();
   const [mode, setMode] = useState<Mode>("in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -71,26 +80,28 @@ export function SignIn() {
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center p-5">
-      <h1 className="text-xl font-bold tracking-tight">{APP_NAME}</h1>
-      <p className="mt-1 mb-5 text-sm text-muted">
-        Sign in once and your clearance history follows you to every device you
-        use. After this the app works offline — set it up at home, use it
-        wherever the bike is.
-      </p>
+      {/* Same shape as PageHeader on the sheets, so the globe is in the place
+          a rider will go looking for it once they are inside. */}
+      <div className="flex items-start justify-between gap-3">
+        <h1 className="text-xl font-bold tracking-tight">{APP_NAME}</h1>
+        <div className="shrink-0">
+          <LanguageButton />
+        </div>
+      </div>
+      <p className="mt-1 mb-5 text-sm text-muted">{t("signIn.blurb")}</p>
 
       {!online && (
         <Card className="mb-4 p-3">
-          <p className="text-sm text-warn">
-            You&rsquo;re offline. Signing in for the first time needs a
-            connection — everything after it doesn&rsquo;t.
-          </p>
+          <p className="text-sm text-warn">{t("signIn.offline")}</p>
         </Card>
       )}
 
       <Card className="p-4">
         <form onSubmit={submit} className="flex flex-col gap-3">
           <label className="flex flex-col gap-1">
-            <span className="text-xs font-semibold text-muted">Email</span>
+            <span className="text-xs font-semibold text-muted">
+              {t("signIn.email")}
+            </span>
             <input
               type="email"
               value={email}
@@ -104,7 +115,9 @@ export function SignIn() {
 
           {mode !== "forgot" && (
             <label className="flex flex-col gap-1">
-              <span className="text-xs font-semibold text-muted">Password</span>
+              <span className="text-xs font-semibold text-muted">
+                {t("signIn.password")}
+              </span>
               <input
                 type="password"
                 value={password}
@@ -115,40 +128,35 @@ export function SignIn() {
                 className={field}
               />
               {mode === "up" && (
-                <span className="text-[11px] text-faint">At least 8 characters.</span>
+                <span className="text-[11px] text-faint">
+                  {t("signIn.passwordHint")}
+                </span>
               )}
             </label>
           )}
 
           {mode === "forgot" && (
             <p className="text-xs leading-relaxed text-faint">
-              We&rsquo;ll email you a link to set a new one. Your services stay
-              exactly where they are.
+              {t("signIn.forgotBlurb")}
             </p>
           )}
 
+          {/* Still English whatever is chosen: this comes back from the auth
+              server, not from the dictionaries. */}
           {error && <p className="text-sm text-bad">{error}</p>}
           {confirm && (
-            <p className="text-sm text-ok">
-              Account created. Check your email for a confirmation link, then
-              come back and sign in.
-            </p>
+            <p className="text-sm text-ok">{t("signIn.confirmSent")}</p>
           )}
-          {sent && (
-            <p className="text-sm text-ok">
-              If that address has an account, a link is on its way. It works
-              once, and only for about an hour.
-            </p>
-          )}
+          {sent && <p className="text-sm text-ok">{t("signIn.resetSent")}</p>}
 
           <Button type="submit" variant="accent" disabled={busy}>
             {busy
-              ? "Just a moment…"
+              ? t("signIn.busy")
               : mode === "in"
-                ? "Sign in"
+                ? t("signIn.submitIn")
                 : mode === "up"
-                  ? "Create account"
-                  : "Email me a link"}
+                  ? t("signIn.submitUp")
+                  : t("signIn.submitForgot")}
           </Button>
         </form>
       </Card>
@@ -158,9 +166,7 @@ export function SignIn() {
         className="mt-3"
         onClick={() => switchTo(mode === "in" ? "up" : "in")}
       >
-        {mode === "in"
-          ? "No account yet? Create one"
-          : "Already have an account? Sign in"}
+        {mode === "in" ? t("signIn.toSignUp") : t("signIn.toSignIn")}
       </Button>
 
       {/* Only offered where it makes sense: somebody halfway through creating
@@ -171,7 +177,7 @@ export function SignIn() {
           onClick={() => switchTo("forgot")}
           className="mt-1 text-xs font-semibold text-faint underline underline-offset-2 hover:text-muted"
         >
-          Forgotten your password?
+          {t("signIn.forgot")}
         </button>
       )}
     </main>

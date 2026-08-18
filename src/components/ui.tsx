@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { LanguageButton } from "./LanguageButton";
 
 export type Tone = "ok" | "bad" | "warn" | "neutral";
 
@@ -27,6 +28,14 @@ export function Chip({
   );
 }
 
+/**
+ * The top of every sheet, and the one place the language control lives.
+ *
+ * Putting it here rather than in each page means a new screen cannot be built
+ * without it — the control is a property of "this is a page", not something
+ * six components each have to remember. It renders nothing at all while
+ * English is the only language available.
+ */
 export function PageHeader({
   title,
   subtitle,
@@ -42,7 +51,15 @@ export function PageHeader({
         <h1 className="text-xl font-bold tracking-tight">{title}</h1>
         {subtitle && <p className="mt-0.5 text-sm text-muted">{subtitle}</p>}
       </div>
-      {action}
+      {/*
+        The globe sits left of the page's own action, so it lands in the same
+        spot on every screen instead of shuffling along as pages gain and lose
+        buttons. shrink-0 keeps a long bike name from squeezing it away.
+      */}
+      <div className="flex shrink-0 items-center gap-2">
+        <LanguageButton />
+        {action}
+      </div>
     </header>
   );
 }

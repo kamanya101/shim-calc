@@ -144,6 +144,35 @@ const en = {
   "time.days": { one: "{count} day ago", other: "{count} days ago" },
 
   // ---------------------------------------------------------------------
+  // Signing in
+  //
+  // The one screen a rider meets before the app has any idea who they are, so
+  // it is also the first place the language button has to work. Everything
+  // here is the app's own words; the errors a failed sign-in shows come back
+  // from the auth server and are still English — see auth.ts.
+  // ---------------------------------------------------------------------
+  "signIn.blurb":
+    "Sign in once and your clearance history follows you to every device you use. After this the app works offline — set it up at home, use it wherever the bike is.",
+  "signIn.offline":
+    "You’re offline. Signing in for the first time needs a connection — everything after it doesn’t.",
+  "signIn.email": "Email",
+  "signIn.password": "Password",
+  "signIn.passwordHint": "At least 8 characters.",
+  "signIn.forgotBlurb":
+    "We’ll email you a link to set a new one. Your services stay exactly where they are.",
+  "signIn.confirmSent":
+    "Account created. Check your email for a confirmation link, then come back and sign in.",
+  "signIn.resetSent":
+    "If that address has an account, a link is on its way. It works once, and only for about an hour.",
+  "signIn.busy": "Just a moment…",
+  "signIn.submitIn": "Sign in",
+  "signIn.submitUp": "Create account",
+  "signIn.submitForgot": "Email me a link",
+  "signIn.toSignUp": "No account yet? Create one",
+  "signIn.toSignIn": "Already have an account? Sign in",
+  "signIn.forgot": "Forgotten your password?",
+
+  // ---------------------------------------------------------------------
   // Account and sync
   // ---------------------------------------------------------------------
   "account.syncsHere": "Your services sync to this account.",
@@ -193,6 +222,7 @@ const en = {
   // Language picker
   // ---------------------------------------------------------------------
   "language.heading": "Language",
+  "language.change": "Change language",
   "language.unreviewed": "not yet checked by a rider who speaks it",
   "language.unreviewedShort": "unchecked",
 } satisfies Dictionary;
