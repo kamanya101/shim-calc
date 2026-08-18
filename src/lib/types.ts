@@ -183,6 +183,19 @@ export type ServiceRecord = {
   odometer?: number;
   title?: string;
   readings: Record<string, ValveReading>;
+  /**
+   * Parts replaced at this service, as permanent ids from serviceItems.ts.
+   *
+   * Held sorted into that file's list order — see `sortItems` — so that two
+   * devices which ticked the same parts in a different sequence hold the same
+   * array and sync has nothing to argue about.
+   *
+   * Absent means nothing was ticked, which is true of every record written
+   * before this existed. That is why there is no migration for it: the empty
+   * case and the not-yet-upgraded case are the same case, and both are already
+   * the right answer.
+   */
+  items?: string[];
   createdAt: string;
   updatedAt: string;
   /**

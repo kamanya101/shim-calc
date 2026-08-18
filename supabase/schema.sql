@@ -123,11 +123,25 @@ create table if not exists public.service_records (
   -- Valve readings keyed by position id. All sizes are whole microns; storing
   -- the readings whole keeps the app's shape and avoids a row per valve.
   readings   jsonb not null default '{}'::jsonb,
+  -- What else was replaced, as permanent ids from src/lib/serviceItems.ts.
+  -- A text array rather than a child table: it is a short tick-list, read and
+  -- written whole with its own service and never queried on its own, and a row
+  -- per tick would multiply the sync payload to answer no question anybody is
+  -- asking. If the shared pool ever counts these, it counts them from its own
+  -- copy, the way it already does with readings.
+  items      text[],
   created_at text not null,
   updated_at text not null,
   deleted_at text,
   primary key (user_id, id)
 );
+
+-- Applied separately so a database created before this column existed picks it
+-- up. Null there means nothing was ticked, which is exactly what every service
+-- recorded before the list existed meant — so there is nothing to back-fill and
+-- no default to invent.
+alter table public.service_records
+  add column if not exists items text[];
 
 -- Sync pulls everything for one rider on every reconcile.
 create index if not exists service_records_user_idx
@@ -739,6 +753,13 @@ grant execute on function public.claim_machine(text, text) to authenticated;
 -- purpose. It is enough to group a stranger's entries together and to hide
 -- them; it reveals nothing about who they are. Sharing a motorcycle is not a
 -- reason to learn somebody's email address.
+
+-- Dropped before it is recreated. Postgres refuses to replace a function whose
+-- return type has changed, and this one gained a column, so a re-run against a
+-- database holding the earlier shape would fail on the create rather than
+-- update it. Dropping first is what keeps this file re-runnable.
+drop function if exists public.records_for_vin(text);
+
 create or replace function public.records_for_vin(target_vin text)
 returns table (
   id         text,
@@ -749,6 +770,7 @@ returns table (
   units      text,
   title      text,
   readings   jsonb,
+  items      text[],
   created_at text,
   updated_at text,
   deleted_at text
@@ -776,7 +798,7 @@ begin
   return query
     select
       r.id, r.user_id, r.engine_id, r.date, r.odometer, b.units,
-      r.title, r.readings, r.created_at, r.updated_at, r.deleted_at
+      r.title, r.readings, r.items, r.created_at, r.updated_at, r.deleted_at
     from public.service_records r
     join public.bikes b
       on b.user_id = r.user_id

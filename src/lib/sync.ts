@@ -2,6 +2,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { buildContribution } from "./pool";
+import { sortItems } from "./serviceItems";
 import {
   bikesStore,
   contributionStore,
@@ -59,6 +60,7 @@ type RecordRow = {
   date: string;
   odometer: number | null;
   title: string | null;
+  items: string[] | null;
   readings: Record<string, ValveReading>;
   created_at: string;
   updated_at: string;
@@ -104,6 +106,11 @@ const toRecord = (row: RecordRow): ServiceRecord => ({
   odometer: row.odometer ?? undefined,
   title: row.title ?? undefined,
   readings: row.readings ?? {},
+  // Re-sorted on the way in rather than trusted. A row written by an older
+  // build, or by a device that stored its ticks before this order existed,
+  // would otherwise arrive in an arbitrary sequence and read as a change on
+  // every reconcile.
+  items: row.items?.length ? sortItems(row.items) : undefined,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
   deletedAt: row.deleted_at ?? undefined,
@@ -118,6 +125,7 @@ const toRecordRow = (record: ServiceRecord, userId: string): RecordRow => ({
   odometer: record.odometer ?? null,
   title: record.title ?? null,
   readings: record.readings ?? {},
+  items: record.items ?? null,
   created_at: record.createdAt,
   updated_at: record.updatedAt,
   deleted_at: record.deletedAt ?? null,
