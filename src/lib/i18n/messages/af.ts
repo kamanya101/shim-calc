@@ -105,6 +105,76 @@ const af = {
     "Word op hierdie toestel gestoor soos jy tik. Gebruik van hierdie sakrekenaar is heeltemal op eie risiko — kontroleer alles voordat jy weer opbou.",
 
   // ---------------------------------------------------------------------
+  // The valve cards
+  //
+  // "stoter" for the tappet bucket rather than the literal "emmer". This is
+  // the block most worth a real rider's eye — Andrew has South African riders
+  // to hand, and these are the words they would actually say at the bench.
+  // ---------------------------------------------------------------------
+  "valve.f-ex-l": "Uitlaat voor links",
+  "valve.f-ex-r": "Uitlaat voor regs",
+  "valve.f-in-l": "Inlaat voor links",
+  "valve.f-in-r": "Inlaat voor regs",
+  "valve.r-in-l": "Inlaat agter links",
+  "valve.r-in-r": "Inlaat agter regs",
+  "valve.r-ex-l": "Uitlaat agter links",
+  "valve.r-ex-r": "Uitlaat agter regs",
+
+  "valve.clearanceLabel": "Speling",
+  "valve.shimLabel": "Stelplaatjie in",
+  "valve.confirmedLabel": "Bevestigde speling",
+
+  "valve.clearanceBounds":
+    "Spelings is ver onder 1 mm. Het jy dalk 0,12 bedoel?",
+  "valve.shimBounds":
+    "Stelplaatjies is omtrent 2–3 mm. Het jy dalk 2,35 bedoel?",
+  "valve.confirmedBounds": "Spelings is ver onder 1 mm.",
+
+  "valve.hintClearance":
+    "Watter voelermaat het jy tussen die nok en die stoter ingekry? Sit jou meting hier in millimeter in.",
+  "valve.hintShim":
+    "Watter stelplaatjie het jy onder hierdie stoter uitgehaal? Meet dit om seker te maak en sit die meting hier in millimeter in.",
+  "valve.hintIdeal":
+    "Dit is die stelplaatjie-dikte wat die speling presies op teiken sou sit vir hierdie klep. Dit word selde gemaak — die voorstel hieronder is die naaste werklike grootte.",
+  "valve.hintNewClearance":
+    "Dit is die speling wat jy kry met die stelplaatjie wat jy gekies het. Is dit binne die toleransies vir hierdie klep? Indien nie, gaan een grootte op of af.",
+  "valve.hintConfirmed":
+    "Sodra die nuwe stelplaatjie in is, meet die speling weer en sit die werklike syfer hier. Dit is dikwels effens meer of minder as die voorspelde een — dit is normaal. Om dit aan te teken gee die volgende diens ’n eerlike beginpunt.",
+
+  "valve.measureFirst":
+    "Meet eers die speling — {min}–{max} mm is binne spesifikasie.",
+  "valve.good": "goed — niks om te verander nie",
+  "valve.onTarget": "presies op jou teiken van {target} mm",
+  "valve.looserThanTarget": "{delta} mm wyer as jou teiken van {target} mm",
+  "valve.tighterThanTarget": "{delta} mm nouer as jou teiken van {target} mm",
+  "valve.tooTightBy": "{by} mm te nou",
+  "valve.tooLooseBy": "{by} mm te wyd",
+  "valve.outsideRange":
+    "Buite {min}–{max} mm — hierdie stelplaatjie moet uit.",
+
+  "valve.changeAnyway": "verander die stelplaatjie in elk geval",
+  "valve.pullShim":
+    "Haal die stelplaatjie uit, meet dit, en sit dit hier in vir ’n vervangingsgrootte.",
+  "valve.noSuitableShim":
+    "Geen stelplaatjie in die katalogus kry hierdie klep binne {min}–{max} mm nie. Kontroleer jou metings — ’n stapel van {stack} mm is buite die normale reeks.",
+  "valve.ideal": "Ideaal {size} mm",
+  "valve.fitThis": "Sit hierdie stelplaatjie in",
+  "valve.thinner": "Dunner stelplaatjie",
+  "valve.thicker": "Dikker stelplaatjie",
+  "valve.newClearance": "Nuwe speling {value} mm",
+  "valve.inSpec": "binne spesifikasie",
+  "valve.outOfSpec": "buite spesifikasie",
+  "valve.sameShimBack": "selfde stelplaatjie terug in",
+  "valve.resetSuggested": "stel terug na voorstel",
+  "valve.noSizeMade": "grootte nie gemaak nie",
+  "valve.confirmPrompt":
+    "Sodra die nuwe stelplaatjie in is, meet weer en teken aan wat jy werklik gekry het.",
+  "valve.confirmedInSpec": "bevestig binne spesifikasie",
+  "valve.confirmedOutOfSpec": "bevestig buite spesifikasie",
+  "valve.exactlyPredicted": "presies soos voorspel",
+  "valve.vsPredicted": "{delta} teenoor voorspel",
+
+  // ---------------------------------------------------------------------
   // The sheet — frame number
   // ---------------------------------------------------------------------
   "vin.label": "Raamnommer (VIN)",

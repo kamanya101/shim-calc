@@ -98,6 +98,72 @@ const fr = {
     "Enregistré sur cet appareil au fur et à mesure. L’usage de ce calculateur se fait à tes risques et périls — vérifie tout avant de remonter.",
 
   // ---------------------------------------------------------------------
+  // The valve cards
+  // ---------------------------------------------------------------------
+  "valve.f-ex-l": "Échappement avant gauche",
+  "valve.f-ex-r": "Échappement avant droit",
+  "valve.f-in-l": "Admission avant gauche",
+  "valve.f-in-r": "Admission avant droite",
+  "valve.r-in-l": "Admission arrière gauche",
+  "valve.r-in-r": "Admission arrière droite",
+  "valve.r-ex-l": "Échappement arrière gauche",
+  "valve.r-ex-r": "Échappement arrière droit",
+
+  "valve.clearanceLabel": "Jeu",
+  "valve.shimLabel": "Pastille en place",
+  "valve.confirmedLabel": "Jeu confirmé",
+
+  "valve.clearanceBounds":
+    "Les jeux sont bien en dessous de 1 mm. Tu voulais dire 0,12 par exemple ?",
+  "valve.shimBounds":
+    "Les pastilles font environ 2–3 mm. Tu voulais dire 2,35 par exemple ?",
+  "valve.confirmedBounds": "Les jeux sont bien en dessous de 1 mm.",
+
+  "valve.hintClearance":
+    "Quelle cale d’épaisseur as-tu réussi à passer entre la came et le poussoir ? Note ta mesure ici, en millimètres.",
+  "valve.hintShim":
+    "Quelle pastille as-tu sortie de sous ce poussoir ? Mesure-la pour en être sûr et note le résultat ici, en millimètres.",
+  "valve.hintIdeal":
+    "C’est l’épaisseur de pastille qui mettrait le jeu exactement sur la cible pour cette soupape. Elle n’existe presque jamais — la suggestion en dessous est la taille réelle la plus proche.",
+  "valve.hintNewClearance":
+    "C’est le jeu que donne la pastille choisie. Est-il dans les tolérances de cette soupape ? Sinon, monte ou descends d’une taille.",
+  "valve.hintConfirmed":
+    "Une fois la nouvelle pastille en place, remesure le jeu et note le chiffre réel ici. Il est souvent un peu au-dessus ou en dessous du prévu — c’est normal. Le noter donne à l’entretien suivant un point de départ honnête.",
+
+  "valve.measureFirst":
+    "Mesure d’abord le jeu — {min}–{max} mm est dans la tolérance.",
+  "valve.good": "bon — rien à changer",
+  "valve.onTarget": "pile sur ta cible de {target} mm",
+  "valve.looserThanTarget": "{delta} mm plus large que ta cible de {target} mm",
+  "valve.tighterThanTarget":
+    "{delta} mm plus serré que ta cible de {target} mm",
+  "valve.tooTightBy": "trop serré de {by} mm",
+  "valve.tooLooseBy": "trop large de {by} mm",
+  "valve.outsideRange": "Hors de {min}–{max} mm — cette pastille doit sortir.",
+
+  "valve.changeAnyway": "changer la pastille quand même",
+  "valve.pullShim":
+    "Sors la pastille, mesure-la et note-la ici pour obtenir la taille de remplacement.",
+  "valve.noSuitableShim":
+    "Aucune pastille du catalogue ne ramène cette soupape entre {min} et {max} mm. Vérifie tes mesures — une hauteur totale de {stack} mm sort de la plage normale.",
+  "valve.ideal": "Idéal {size} mm",
+  "valve.fitThis": "Monter cette pastille",
+  "valve.thinner": "Pastille plus fine",
+  "valve.thicker": "Pastille plus épaisse",
+  "valve.newClearance": "Nouveau jeu {value} mm",
+  "valve.inSpec": "dans la tolérance",
+  "valve.outOfSpec": "hors tolérance",
+  "valve.sameShimBack": "même pastille remontée",
+  "valve.resetSuggested": "revenir à la suggestion",
+  "valve.noSizeMade": "taille non fabriquée",
+  "valve.confirmPrompt":
+    "Une fois la nouvelle pastille en place, remesure et note ce que tu as vraiment obtenu.",
+  "valve.confirmedInSpec": "confirmé dans la tolérance",
+  "valve.confirmedOutOfSpec": "confirmé hors tolérance",
+  "valve.exactlyPredicted": "exactement comme prévu",
+  "valve.vsPredicted": "{delta} par rapport au prévu",
+
+  // ---------------------------------------------------------------------
   // The sheet — frame number
   // ---------------------------------------------------------------------
   "vin.label": "Numéro de cadre (VIN)",

@@ -99,6 +99,78 @@ const de = {
     "Wird beim Tippen auf diesem Gerät gespeichert. Die Nutzung dieses Rechners erfolgt auf eigene Gefahr — prüfe alles nach, bevor du den Motor zusammenbaust.",
 
   // ---------------------------------------------------------------------
+  // The valve cards
+  //
+  // "Plättchen" alone on the narrow field labels, "Einstellplättchen" in
+  // prose — the full compound does not fit a 7rem column beside "mm". Flagged
+  // for review: German riders very often just say "Shim".
+  // ---------------------------------------------------------------------
+  "valve.f-ex-l": "Auslass vorn links",
+  "valve.f-ex-r": "Auslass vorn rechts",
+  "valve.f-in-l": "Einlass vorn links",
+  "valve.f-in-r": "Einlass vorn rechts",
+  "valve.r-in-l": "Einlass hinten links",
+  "valve.r-in-r": "Einlass hinten rechts",
+  "valve.r-ex-l": "Auslass hinten links",
+  "valve.r-ex-r": "Auslass hinten rechts",
+
+  "valve.clearanceLabel": "Spiel",
+  "valve.shimLabel": "Verbautes Plättchen",
+  "valve.confirmedLabel": "Bestätigtes Spiel",
+
+  "valve.clearanceBounds":
+    "Ventilspiele liegen deutlich unter 1 mm. Meintest du z. B. 0,12?",
+  "valve.shimBounds":
+    "Plättchen liegen bei etwa 2–3 mm. Meintest du z. B. 2,35?",
+  "valve.confirmedBounds": "Ventilspiele liegen deutlich unter 1 mm.",
+
+  "valve.hintClearance":
+    "Welche Fühlerlehre hast du zwischen Nocken und Tassenstößel bekommen? Trag dein Messergebnis hier in Millimetern ein.",
+  "valve.hintShim":
+    "Welches Einstellplättchen hast du unter diesem Tassenstößel herausgeholt? Miss es zur Sicherheit nach und trag das Ergebnis hier in Millimetern ein.",
+  "valve.hintIdeal":
+    "Das ist die Plättchenstärke, die das Spiel für dieses Ventil genau auf den Zielwert bringen würde. Sie wird selten gefertigt — der Vorschlag darunter ist die nächste echte Größe.",
+  "valve.hintNewClearance":
+    "Das ist das Spiel, das sich mit dem gewählten Plättchen ergibt. Liegt es innerhalb der Toleranz für dieses Ventil? Wenn nicht, geh eine Größe hoch oder runter.",
+  "valve.hintConfirmed":
+    "Wenn das neue Plättchen drin ist, miss das Spiel noch einmal und trag den echten Wert hier ein. Er liegt oft leicht über oder unter dem vorhergesagten — das ist normal. Ihn festzuhalten gibt dem nächsten Service einen ehrlichen Ausgangspunkt.",
+
+  "valve.measureFirst":
+    "Miss zuerst das Spiel — {min}–{max} mm liegt in der Toleranz.",
+  "valve.good": "gut — nichts zu tun",
+  "valve.onTarget": "genau auf deinem Zielwert von {target} mm",
+  "valve.looserThanTarget":
+    "{delta} mm weiter als dein Zielwert von {target} mm",
+  "valve.tighterThanTarget":
+    "{delta} mm enger als dein Zielwert von {target} mm",
+  "valve.tooTightBy": "{by} mm zu eng",
+  "valve.tooLooseBy": "{by} mm zu weit",
+  "valve.outsideRange":
+    "Außerhalb von {min}–{max} mm — dieses Plättchen muss raus.",
+
+  "valve.changeAnyway": "Plättchen trotzdem wechseln",
+  "valve.pullShim":
+    "Plättchen herausnehmen, messen und hier eintragen, um die Ersatzgröße zu bekommen.",
+  "valve.noSuitableShim":
+    "Kein Plättchen im Katalog bringt dieses Ventil auf {min}–{max} mm. Prüf deine Messungen — ein Stapelmaß von {stack} mm liegt außerhalb des üblichen Bereichs.",
+  "valve.ideal": "Ideal {size} mm",
+  "valve.fitThis": "Dieses Plättchen einbauen",
+  "valve.thinner": "Dünneres Plättchen",
+  "valve.thicker": "Dickeres Plättchen",
+  "valve.newClearance": "Neues Spiel {value} mm",
+  "valve.inSpec": "in Toleranz",
+  "valve.outOfSpec": "außerhalb der Toleranz",
+  "valve.sameShimBack": "gleiches Plättchen wieder rein",
+  "valve.resetSuggested": "auf Vorschlag zurücksetzen",
+  "valve.noSizeMade": "Größe nicht gefertigt",
+  "valve.confirmPrompt":
+    "Wenn das neue Plättchen drin ist, miss noch einmal und halte fest, was tatsächlich herauskam.",
+  "valve.confirmedInSpec": "bestätigt in Toleranz",
+  "valve.confirmedOutOfSpec": "bestätigt außerhalb der Toleranz",
+  "valve.exactlyPredicted": "genau wie vorhergesagt",
+  "valve.vsPredicted": "{delta} gegenüber der Vorhersage",
+
+  // ---------------------------------------------------------------------
   // The sheet — frame number
   // ---------------------------------------------------------------------
   "vin.label": "Fahrgestellnummer (VIN)",

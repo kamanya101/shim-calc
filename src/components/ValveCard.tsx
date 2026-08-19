@@ -4,8 +4,8 @@ import { useId, useState } from "react";
 import { calculateValve, stepShim, type Aim } from "@/lib/calc";
 import { partsForSize } from "@/lib/catalogues";
 import { mm, parseMm, signedMm } from "@/lib/format";
-import { HINTS } from "@/lib/notes";
 import type { ClearanceRange, Microns, ValvePosition, ValveReading } from "@/lib/types";
+import { useT } from "./LocaleProvider";
 import { Chip } from "./ui";
 
 /**
@@ -43,6 +43,7 @@ export function ValveCard({
   reading: ValveReading | undefined;
   onChange: (reading: ValveReading) => void;
 }) {
+  const t = useT();
   const result = calculateValve(reading, range, aim, catalogueIds);
   const [opened, setOpened] = useState(false);
 
@@ -65,16 +66,18 @@ export function ValveCard({
       {/* The full name, not just the side. Held vertically a phone shows one
           card at a time, and nobody should have to scroll back to a section
           heading to remember which valve they are typing into. */}
-      <h4 className="mb-2 text-sm font-bold">{position.label}</h4>
+      {/* Keyed by the valve's permanent id rather than by its English name, so
+          renaming a valve on screen cannot silently orphan a translation. */}
+      <h4 className="mb-2 text-sm font-bold">{t(`valve.${position.id}`)}</h4>
 
       <div className="flex items-start gap-3">
         <div className="w-28 shrink-0">
           <NumberField
-            label="Clearance"
-            hint={HINTS.clearance}
+            label={t("valve.clearanceLabel")}
+            hint={t("valve.hintClearance")}
             value={reading?.clearance}
             bounds={CLEARANCE_BOUNDS}
-            boundsMessage="Clearances are well under 1 mm. Did you mean e.g. 0.12?"
+            boundsMessage={t("valve.clearanceBounds")}
             onChange={(um) => onChange({ ...reading, clearance: um })}
           />
         </div>
@@ -89,7 +92,7 @@ export function ValveCard({
           onClick={() => setOpened(true)}
           className="mt-2 text-[11px] font-semibold text-accent underline underline-offset-2"
         >
-          change the shim anyway
+          {t("valve.changeAnyway")}
         </button>
       )}
 
@@ -98,18 +101,17 @@ export function ValveCard({
           <div className="flex items-start gap-3">
             <div className="w-28 shrink-0">
               <NumberField
-                label="Shim fitted"
-                hint={HINTS.shim}
+                label={t("valve.shimLabel")}
+                hint={t("valve.hintShim")}
                 value={reading?.shim}
                 bounds={SHIM_BOUNDS}
-                boundsMessage="Shims are around 2–3 mm. Did you mean e.g. 2.35?"
+                boundsMessage={t("valve.shimBounds")}
                 onChange={(um) => onChange({ ...reading, shim: um })}
               />
             </div>
             {!result.hasShim && (
               <p className="min-w-0 flex-1 pt-5 text-[11px] leading-tight text-faint">
-                Pull the shim, measure it, and enter it here for a replacement
-                size.
+                {t("valve.pullShim")}
               </p>
             )}
           </div>
@@ -117,23 +119,30 @@ export function ValveCard({
           {result.complete &&
             (result.noSuitableShim && result.chosenShim === undefined ? (
               <p className="mt-3 text-sm text-bad">
-                No shim in the catalogue lands this valve inside {mm(range.min)}–
-                {mm(range.max)} mm. Check your measurements — a stack of{" "}
-                {mm(result.stack)} mm is outside the normal range.
+                {t("valve.noSuitableShim", {
+                  min: mm(range.min),
+                  max: mm(range.max),
+                  stack: mm(result.stack),
+                })}
               </p>
             ) : (
               <>
                 <div className="mt-3 flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-[11px] font-medium text-faint" title={HINTS.ideal}>
-                      Ideal {mm(result.idealShim)} mm
+                    <p
+                      className="text-[11px] font-medium text-faint"
+                      title={t("valve.hintIdeal")}
+                    >
+                      {t("valve.ideal", { size: mm(result.idealShim) })}
                     </p>
-                    <p className="text-[11px] text-faint">Fit this shim</p>
+                    <p className="text-[11px] text-faint">
+                      {t("valve.fitThis")}
+                    </p>
                   </div>
 
                   <div className="flex shrink-0 items-center gap-1.5">
                     <StepButton
-                      label="Thinner shim"
+                      label={t("valve.thinner")}
                       disabled={stepShim(result.chosenShim!, -1, catalogueIds) === undefined}
                       onClick={() => setChosen(stepShim(result.chosenShim!, -1, catalogueIds))}
                     >
@@ -143,7 +152,7 @@ export function ValveCard({
                       {mm(result.chosenShim)}
                     </span>
                     <StepButton
-                      label="Thicker shim"
+                      label={t("valve.thicker")}
                       disabled={stepShim(result.chosenShim!, 1, catalogueIds) === undefined}
                       onClick={() => setChosen(stepShim(result.chosenShim!, 1, catalogueIds))}
                     >
@@ -153,26 +162,32 @@ export function ValveCard({
                 </div>
 
                 <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
-                  <span className="text-sm text-muted" title={HINTS.newClearance}>
-                    New clearance{" "}
-                    <span className="font-mono font-bold text-ink tabular-nums">
-                      {mm(result.newClearance)}
-                    </span>{" "}
-                    mm
+                  <span
+                    className="text-sm text-muted"
+                    title={t("valve.hintNewClearance")}
+                  >
+                    {withNumber(
+                      t("valve.newClearance"),
+                      <span className="font-mono font-bold text-ink tabular-nums">
+                        {mm(result.newClearance)}
+                      </span>,
+                    )}
                   </span>
                   {result.newInSpec ? (
-                    <Chip tone="ok">in spec</Chip>
+                    <Chip tone="ok">{t("valve.inSpec")}</Chip>
                   ) : (
-                    <Chip tone="bad">out of spec</Chip>
+                    <Chip tone="bad">{t("valve.outOfSpec")}</Chip>
                   )}
-                  {result.noChange && <Chip tone="neutral">same shim back in</Chip>}
+                  {result.noChange && (
+                    <Chip tone="neutral">{t("valve.sameShimBack")}</Chip>
+                  )}
                   {result.overridden && (
                     <button
                       type="button"
                       onClick={() => setChosen(undefined)}
                       className="text-[11px] font-semibold text-accent underline underline-offset-2"
                     >
-                      reset to suggested
+                      {t("valve.resetSuggested")}
                     </button>
                   )}
                 </div>
@@ -183,7 +198,7 @@ export function ValveCard({
                       <div key={part.brand} className="flex gap-1.5">
                         <dt className="text-faint">{part.brand}</dt>
                         <dd className={part.part ? "font-mono text-muted" : "italic text-faint"}>
-                          {part.part ?? "no size made"}
+                          {part.part ?? t("valve.noSizeMade")}
                         </dd>
                       </div>
                     ))}
@@ -194,32 +209,35 @@ export function ValveCard({
                   <div className="flex items-end gap-2.5">
                     <div className="w-28 shrink-0">
                       <NumberField
-                        label="Confirmed gap"
-                        hint={HINTS.confirmed}
+                        label={t("valve.confirmedLabel")}
+                        hint={t("valve.hintConfirmed")}
                         value={reading?.confirmedClearance}
                         placeholder={mm(result.newClearance)}
                         bounds={CLEARANCE_BOUNDS}
-                        boundsMessage="Clearances are well under 1 mm."
+                        boundsMessage={t("valve.confirmedBounds")}
                         onChange={(um) => onChange({ ...reading, confirmedClearance: um })}
                       />
                     </div>
                     <div className="min-w-0 flex-1 pb-2">
                       {result.confirmedClearance === undefined ? (
                         <p className="text-[11px] leading-tight text-faint">
-                          Once the new shim is in, measure again and record what
-                          you actually got.
+                          {t("valve.confirmPrompt")}
                         </p>
                       ) : (
                         <div className="flex flex-wrap items-center gap-1.5">
                           {result.confirmedInSpec ? (
-                            <Chip tone="ok">confirmed in spec</Chip>
+                            <Chip tone="ok">{t("valve.confirmedInSpec")}</Chip>
                           ) : (
-                            <Chip tone="bad">confirmed out of spec</Chip>
+                            <Chip tone="bad">
+                              {t("valve.confirmedOutOfSpec")}
+                            </Chip>
                           )}
                           <span className="text-[11px] text-faint">
                             {result.confirmedDelta === 0
-                              ? "exactly as predicted"
-                              : `${signedMm(result.confirmedDelta)} vs predicted`}
+                              ? t("valve.exactlyPredicted")
+                              : t("valve.vsPredicted", {
+                                  delta: signedMm(result.confirmedDelta),
+                                })}
                           </span>
                         </div>
                       )}
@@ -234,6 +252,26 @@ export function ValveCard({
   );
 }
 
+/**
+ * Splices a value into a message where that value has to be styled apart from
+ * the words around it.
+ *
+ * Splitting on the placeholder rather than interpolating keeps the whole
+ * sentence in the dictionary, so a language is free to put the number
+ * somewhere English does not — which is the entire reason these are sentences
+ * with placeholders and not labels glued to values.
+ */
+function withNumber(message: string, value: React.ReactNode) {
+  const [before, after = ""] = message.split("{value}");
+  return (
+    <>
+      {before}
+      {value}
+      {after}
+    </>
+  );
+}
+
 /** The pass/fail on the gap alone — the only thing most valves ever need. */
 function Verdict({
   result,
@@ -242,23 +280,35 @@ function Verdict({
   result: ReturnType<typeof calculateValve>;
   range: ClearanceRange;
 }) {
+  const t = useT();
+
   if (!result.hasClearance) {
     return (
       <p className="text-[11px] leading-tight text-faint">
-        Measure the gap first — {mm(range.min)}–{mm(range.max)} mm is in spec.
+        {t("valve.measureFirst", {
+          min: mm(range.min),
+          max: mm(range.max),
+        })}
       </p>
     );
   }
 
   if (result.measuredInSpec) {
     const delta = result.targetDelta ?? 0;
+    const target = mm(result.target);
     return (
       <div>
-        <Chip tone="ok">good — no change needed</Chip>
+        <Chip tone="ok">{t("valve.good")}</Chip>
         <p className="mt-1 text-[11px] leading-tight text-faint">
+          {/* Three separate sentences rather than one with "looser"/"tighter"
+              dropped into the middle. Which word it is changes the grammar
+              around it in several of these languages. */}
           {delta === 0
-            ? `right on your ${mm(result.target)} mm target`
-            : `${mm(Math.abs(delta))} mm ${delta > 0 ? "looser" : "tighter"} than your ${mm(result.target)} mm target`}
+            ? t("valve.onTarget", { target })
+            : t(
+                delta > 0 ? "valve.looserThanTarget" : "valve.tighterThanTarget",
+                { delta: mm(Math.abs(delta)), target },
+              )}
         </p>
       </div>
     );
@@ -268,10 +318,12 @@ function Verdict({
   return (
     <div>
       <Chip tone="bad">
-        {by < 0 ? "too tight" : "too loose"} by {mm(Math.abs(by))} mm
+        {t(by < 0 ? "valve.tooTightBy" : "valve.tooLooseBy", {
+          by: mm(Math.abs(by)),
+        })}
       </Chip>
       <p className="mt-1 text-[11px] leading-tight text-faint">
-        Outside {mm(range.min)}–{mm(range.max)} mm — this shim needs to come out.
+        {t("valve.outsideRange", { min: mm(range.min), max: mm(range.max) })}
       </p>
     </div>
   );

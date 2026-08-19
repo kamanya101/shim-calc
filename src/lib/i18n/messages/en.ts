@@ -100,6 +100,88 @@ const en = {
     "Saved on this device as you type. Use of this calculator is at your own risk — check everything before you build it up.",
 
   // ---------------------------------------------------------------------
+  // The valve cards
+  //
+  // The screen a rider actually works from, with the engine in bits. Whole
+  // sentences with placeholders, never a label glued to a number: "too tight
+  // by 0,03 mm" is one clause in English and a different shape in German, and
+  // a card that reads as translated-by-machine is a card somebody stops
+  // trusting halfway through a service.
+  //
+  // "mm" is left out of these keys where it stands alone in the markup — it is
+  // the SI symbol and identical in every language here.
+  // ---------------------------------------------------------------------
+
+  // The eight valves, named as they sit in the engine. Ids are permanent;
+  // only these move. Left and right are as the rider sits on the bike.
+  "valve.f-ex-l": "Front left exhaust",
+  "valve.f-ex-r": "Front right exhaust",
+  "valve.f-in-l": "Front left intake",
+  "valve.f-in-r": "Front right intake",
+  "valve.r-in-l": "Rear left intake",
+  "valve.r-in-r": "Rear right intake",
+  "valve.r-ex-l": "Rear left exhaust",
+  "valve.r-ex-r": "Rear right exhaust",
+
+  "valve.clearanceLabel": "Clearance",
+  "valve.shimLabel": "Shim fitted",
+  "valve.confirmedLabel": "Confirmed gap",
+
+  "valve.clearanceBounds":
+    "Clearances are well under 1 mm. Did you mean e.g. 0.12?",
+  "valve.shimBounds": "Shims are around 2–3 mm. Did you mean e.g. 2.35?",
+  "valve.confirmedBounds": "Clearances are well under 1 mm.",
+
+  // Tooltips. Longer than anything else here because they are the closest
+  // thing this app has to somebody standing over your shoulder.
+  "valve.hintClearance":
+    "What feeler gauge did you manage to get in-between the cam and the bucket? Put your measurement in here in millimetres.",
+  "valve.hintShim":
+    "What is the shim that you pulled out from under this bucket? Measure it to make sure and insert the measurement here in millimetres.",
+  "valve.hintIdeal":
+    "This is the shim size that would put the gap exactly on target for this valve. It is rarely a size anyone makes — the suggestion below is the nearest real one.",
+  "valve.hintNewClearance":
+    "This is the clearance you get from the shim you chose. Is it within the tolerances given for this valve? If not go one size up or down to get there.",
+  "valve.hintConfirmed":
+    "Once the new shim is in, measure the gap again and put the real figure here. It is often slightly over or under the predicted one — that is normal. Recording it gives the next service an honest starting point.",
+
+  // The verdict on the gap alone — the only thing most valves ever need.
+  "valve.measureFirst": "Measure the gap first — {min}–{max} mm is in spec.",
+  "valve.good": "good — no change needed",
+  "valve.onTarget": "right on your {target} mm target",
+  "valve.looserThanTarget": "{delta} mm looser than your {target} mm target",
+  "valve.tighterThanTarget": "{delta} mm tighter than your {target} mm target",
+  "valve.tooTightBy": "too tight by {by} mm",
+  "valve.tooLooseBy": "too loose by {by} mm",
+  "valve.outsideRange": "Outside {min}–{max} mm — this shim needs to come out.",
+
+  // The shim step, which stays out of the way until a valve has earned it.
+  "valve.changeAnyway": "change the shim anyway",
+  "valve.pullShim":
+    "Pull the shim, measure it, and enter it here for a replacement size.",
+  "valve.noSuitableShim":
+    "No shim in the catalogue lands this valve inside {min}–{max} mm. Check your measurements — a stack of {stack} mm is outside the normal range.",
+  "valve.ideal": "Ideal {size} mm",
+  "valve.fitThis": "Fit this shim",
+  "valve.thinner": "Thinner shim",
+  "valve.thicker": "Thicker shim",
+  // {value} is replaced by the number itself, which is styled apart from the
+  // words around it — so this one is split on the placeholder rather than
+  // interpolated. Keep the placeholder exactly as written.
+  "valve.newClearance": "New clearance {value} mm",
+  "valve.inSpec": "in spec",
+  "valve.outOfSpec": "out of spec",
+  "valve.sameShimBack": "same shim back in",
+  "valve.resetSuggested": "reset to suggested",
+  "valve.noSizeMade": "no size made",
+  "valve.confirmPrompt":
+    "Once the new shim is in, measure again and record what you actually got.",
+  "valve.confirmedInSpec": "confirmed in spec",
+  "valve.confirmedOutOfSpec": "confirmed out of spec",
+  "valve.exactlyPredicted": "exactly as predicted",
+  "valve.vsPredicted": "{delta} vs predicted",
+
+  // ---------------------------------------------------------------------
   // The sheet — frame number
   // ---------------------------------------------------------------------
   "vin.label": "Frame number (VIN)",
