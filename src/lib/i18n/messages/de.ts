@@ -127,6 +127,7 @@ const de = {
     "Hake an, was bei diesem Service verbaut wurde. Nicht angehakt heißt schlicht „diesmal nicht“ — hier muss nichts ausgefüllt werden.",
 
   // The parts themselves. Ids are permanent and English; only these move.
+  "part.oil": "Öl (jede Viskosität)",
   "part.oil-50w": "Öl 50W",
   "part.oil-60w": "Öl 60W",
   "part.air-filter": "Luftfilter",

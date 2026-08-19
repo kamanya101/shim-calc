@@ -93,8 +93,44 @@ export type PooledReading = {
   updated_at: string;
 };
 
+/**
+ * One service, at the grain the parts tick-list actually has.
+ *
+ * Separate from PooledReading because the parts belong to the service and not
+ * to each of its eight valves: carried on the readings they would be repeated
+ * eight times over, and anything counting them would have to remember to
+ * divide by eight or silently report every rider changing their chain eight
+ * times as often as they do.
+ *
+ * Same keys, same token, same locks. It says nothing a reading does not
+ * already say about the machine.
+ */
+export type PooledService = {
+  /** hash(token, service). The same key this service's readings carry. */
+  service_key: string;
+  /** hash(token, bike). Services from one motorcycle share this. */
+  bike_key: string;
+  model_id: string | null;
+  year: number | null;
+  engine_id: string;
+  /** "2026-08". Deliberately not the day. */
+  month: string | null;
+  /** Always kilometres. The distance a log covers is measured from these. */
+  odometer: number | null;
+  country: string | null;
+  /** Permanent ids from serviceItems.ts, in list order. May be empty. */
+  items: string[];
+  created_at: string;
+  updated_at: string;
+};
+
 export type ContributionPayload = {
   readings: PooledReading[];
+  /** One per logged service, ticks or no ticks — see the note where they are
+      built for why the empty ones have to go too. */
+  services: PooledService[];
+  /** Service keys to remove: deleted services, and imports not yet confirmed. */
+  retractServices: string[];
   /**
    * Ids to remove: valves of a deleted service, and valves whose measurement
    * has been cleared. Sent every time rather than remembered — deleting an id
@@ -154,6 +190,8 @@ export async function buildContribution(
   const bikeById = new Map(bikes.map((bike) => [bike.id, bike]));
   const readings: PooledReading[] = [];
   const retract: string[] = [];
+  const services: PooledService[] = [];
+  const retractServices: string[] = [];
 
   for (const record of records) {
     const bike = bikeById.get(record.bikeId);
@@ -188,8 +226,48 @@ export async function buildContribution(
       Boolean(bike.deletedAt) ||
       record.source === "import";
 
-    const serviceKey = gone ? "" : await poolKey(token, "service", record.id);
-    const bikeKey = gone ? "" : await poolKey(token, "bike", bike.id);
+    // Derived whether or not the service still counts, because a retraction has
+    // to be able to name the row it is taking back out. Only what gets *sent*
+    // is blanked below.
+    const serviceId = await poolKey(token, "service", record.id);
+    const bikeId = await poolKey(token, "bike", bike.id);
+
+    const serviceKey = gone ? "" : serviceId;
+    const bikeKey = gone ? "" : bikeId;
+
+    const odometerKm =
+      record.odometer === undefined
+        ? null
+        : toKm(record.odometer, bike.units ?? "km");
+
+    /*
+     * The service itself, carrying what else was replaced.
+     *
+     * Sent even when the rider ticked nothing. The parts panel measures an
+     * interval across the distance a log covers, and that distance is the
+     * oldest logged odometer to the newest — so every logged service is one of
+     * the two ends or a point between them, whether or not anything was ticked
+     * at it. Send only the services with ticks and the span collapses to the
+     * distance between the first and last time somebody happened to change an
+     * air filter, which is a different and much shorter number.
+     */
+    if (gone) {
+      retractServices.push(serviceId);
+    } else {
+      services.push({
+        service_key: serviceId,
+        bike_key: bikeId,
+        model_id: bike.modelId ?? null,
+        year: bike.year ?? null,
+        engine_id: record.engineId,
+        month: month(record.date),
+        odometer: odometerKm,
+        country: bike.country ?? null,
+        items: record.items ?? [],
+        created_at: record.createdAt,
+        updated_at: record.updatedAt,
+      });
+    }
 
     for (const position of engine.positions) {
       const id = await poolKey(token, "reading", `${record.id}:${position.id}`);
@@ -230,8 +308,10 @@ export async function buildContribution(
     }
   }
 
-  const signature = await sha256(JSON.stringify({ readings, retract }));
-  return { readings, retract, signature };
+  const signature = await sha256(
+    JSON.stringify({ readings, retract, services, retractServices }),
+  );
+  return { readings, retract, services, retractServices, signature };
 }
 
 /**

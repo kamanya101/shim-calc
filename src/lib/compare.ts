@@ -246,3 +246,143 @@ export function riderShims(
 
   return values;
 }
+
+/*
+ * ---------------------------------------------------------------------------
+ * HOW OFTEN EVERYBODY ELSE REPLACES THE SAME THINGS
+ *
+ * The second comparison on the page, and a different quantity from the shims
+ * above: not "what am I running" but "how far do I get between chains".
+ *
+ * The measurement is defined in the comment above pool_service_intervals in
+ * supabase/schema.sql, and the rules below have to match it exactly or the two
+ * halves of the panel are not comparable. The important ones, restated:
+ *
+ *   * a bike's distance is its newest logged odometer minus its OLDEST, never
+ *     the odometer itself;
+ *   * two logged services minimum, and at least 1,000 km between them;
+ *   * the two oil grades are one job;
+ *   * the two catch-alls cannot yield an interval and are left out.
+ * ---------------------------------------------------------------------------
+ */
+
+/** Both oil grades answer the same question: how often is the oil changed. */
+const OIL_GRADES = new Set(["oil-50w", "oil-60w"]);
+/** They record that something was done, not what. No interval is possible. */
+const NO_INTERVAL = new Set(["engine-parts", "chassis-parts"]);
+/** The id the combined oil line is filed under. Not a real serviceItems id. */
+export const OIL_COMBINED = "oil";
+
+/** Two services and a thousand kilometres, the same floor the pool applies. */
+const MIN_SERVICES = 2;
+const MIN_SPAN_KM = 1000;
+
+export function normaliseItem(id: string): string | null {
+  if (NO_INTERVAL.has(id)) return null;
+  return OIL_GRADES.has(id) ? OIL_COMBINED : id;
+}
+
+export type IntervalSide = {
+  bikes: number;
+  services: number;
+  enough: boolean;
+  /** Kilometres between one replacement and the next. Null below the floor. */
+  kmBetween: number | null;
+};
+
+export type ServiceIntervals = {
+  items: Record<string, IntervalSide>;
+  /** Bikes with a long enough log to have contributed a span at all. */
+  bikes: number;
+  minBikes: number;
+};
+
+export type IntervalResult =
+  | { state: "ok"; intervals: ServiceIntervals }
+  | { state: "offline" }
+  | { state: "no-backend" }
+  | { state: "error"; message: string };
+
+const EMPTY_INTERVALS: ServiceIntervals = { items: {}, bikes: 0, minBikes: 3 };
+
+export async function fetchServiceIntervals(
+  scope: PoolScope,
+  bike: Bike,
+): Promise<IntervalResult> {
+  const supabase = getSupabase();
+  if (!supabase) return { state: "no-backend" };
+  if (typeof navigator !== "undefined" && !navigator.onLine) {
+    return { state: "offline" };
+  }
+
+  // The same scope choice as the shims above, minus the two filters that make
+  // no sense here: an interval is measured across a whole log, so narrowing to
+  // a mileage window would cut the span it is measured over, and "latest only"
+  // would leave one service per bike and no span at all.
+  const filter = buildFilter(scope, bike, false, {});
+  const { data, error } = await supabase.rpc("pool_service_intervals", {
+    model_ids: filter.model_ids,
+    years: filter.years,
+  });
+
+  if (error) return { state: "error", message: error.message };
+  return {
+    state: "ok",
+    intervals: (data as ServiceIntervals | null) ?? EMPTY_INTERVALS,
+  };
+}
+
+/**
+ * The same figure for this bike alone, computed the pool's way.
+ *
+ * Imported services are excluded, because the pool excludes them until they are
+ * confirmed — a rider comparing an interval drawn from their whole spreadsheet
+ * against a pool that never saw it would be comparing two different things and
+ * have no way of knowing.
+ */
+export function riderServiceIntervals(
+  records: ServiceRecord[],
+  bike: Bike,
+): { kmBetween: Record<string, number>; services: number; spanKm: number } {
+  const mine = records
+    .filter(
+      (record) =>
+        record.bikeId === bike.id &&
+        !record.deletedAt &&
+        record.source !== "import" &&
+        record.odometer !== undefined,
+    )
+    .map((record) => ({
+      km: toKm(record.odometer as number, bike.units ?? "km"),
+      items: record.items ?? [],
+    }));
+
+  if (mine.length < MIN_SERVICES) {
+    return { kmBetween: {}, services: mine.length, spanKm: 0 };
+  }
+
+  const odos = mine.map((r) => r.km);
+  const spanKm = Math.max(...odos) - Math.min(...odos);
+  if (spanKm < MIN_SPAN_KM) {
+    return { kmBetween: {}, services: mine.length, spanKm };
+  }
+
+  // Counted per service, so a service somehow carrying both oil grades is one
+  // oil change rather than two — exactly what the pool's distinct count does.
+  const ticks: Record<string, number> = {};
+  for (const record of mine) {
+    const seen = new Set<string>();
+    for (const id of record.items) {
+      const key = normaliseItem(id);
+      if (key) seen.add(key);
+    }
+    for (const key of seen) ticks[key] = (ticks[key] ?? 0) + 1;
+  }
+
+  const kmBetween: Record<string, number> = {};
+  for (const [key, n] of Object.entries(ticks)) {
+    kmBetween[key] = Math.round(spanKm / n);
+  }
+
+  return { kmBetween, services: mine.length, spanKm };
+}

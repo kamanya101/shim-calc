@@ -126,6 +126,7 @@ const fr = {
     "Coche ce qui a été monté lors de cet entretien. Laissé vide veut simplement dire « pas cette fois » — rien ici n’est obligatoire.",
 
   // The parts themselves. Ids are permanent and English; only these move.
+  "part.oil": "Huile (tout indice)",
   "part.oil-50w": "Huile 50W",
   "part.oil-60w": "Huile 60W",
   "part.air-filter": "Filtre à air",

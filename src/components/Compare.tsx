@@ -4,17 +4,23 @@ import { useEffect, useMemo, useState } from "react";
 import {
   MODES,
   fetchPoolDistribution,
+  fetchServiceIntervals,
+  normaliseItem,
+  riderServiceIntervals,
   riderShims,
   scopeOptions,
   type CompareMode,
+  type IntervalResult,
   type OdoWindow,
   type PoolResult,
   type PoolScope,
   type PoolSide,
 } from "@/lib/compare";
-import { mm, unitLabel } from "@/lib/format";
-import type { EngineSpec, Microns, ServiceRecord, ValveType } from "@/lib/types";
+import { formatNumber, fromKm, mm, unitLabel } from "@/lib/format";
+import { SERVICE_ITEMS } from "@/lib/serviceItems";
+import type { Bike, EngineSpec, Microns, ServiceRecord, ValveType } from "@/lib/types";
 import { BikeTabs } from "./BikeTabs";
+import { useT } from "./LocaleProvider";
 import { useRecords } from "./RecordsProvider";
 import { Card, EmptyState, PageHeader } from "./ui";
 import { VinGate } from "./VinGate";
@@ -214,6 +220,8 @@ export function Compare() {
         result={result}
         loading={loading}
       />
+
+      <ServiceIntervals bike={bike} records={records} scope={activeScope} />
 
       {/*
         Said on the page rather than kept quiet: a wide pool mixes engines at
@@ -592,5 +600,208 @@ function ComparePanel({
         {mm(poolMax)} mm
       </text>
     </svg>
+  );
+}
+
+/**
+ * The serviceItems order, with the two oil grades folded into one line and the
+ * two catch-alls dropped — the same shape pool_service_intervals returns, so
+ * the rows line up with what comes back without any matching by hand.
+ */
+const INTERVAL_ITEMS = (() => {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const item of SERVICE_ITEMS) {
+    const key = normaliseItem(item.id);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(key);
+  }
+  return out;
+})();
+
+/**
+ * How far everybody else gets between replacing the same things.
+ *
+ * The measurement, and every judgement inside it, is set out above
+ * pool_service_intervals in supabase/schema.sql. The two that a reader of this
+ * page needs to know are said on the page itself: the distance is only ever the
+ * span a rider's own log covers, and a part is only here because somebody
+ * ticked it — so this is what the riders who record a thing do, never what the
+ * motorcycle needs.
+ *
+ * Fetched separately from the shim distribution rather than folded into it.
+ * They answer different questions at different grains, the mileage window
+ * applies to one and not the other, and a rider changing the window should not
+ * pay for this query again.
+ */
+function ServiceIntervals({
+  bike,
+  records,
+  scope,
+}: {
+  bike: Bike;
+  records: ServiceRecord[];
+  scope: PoolScope;
+}) {
+  const t = useT();
+  const [result, setResult] = useState<IntervalResult | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchServiceIntervals(scope, bike).then((next) => {
+      if (!cancelled) setResult(next);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [scope, bike]);
+
+  const mine = useMemo(
+    () => riderServiceIntervals(records, bike),
+    [records, bike],
+  );
+
+  // Offline and no-backend are already said once by the panels above, and
+  // saying them twice on one screen reads as two faults rather than one. A
+  // genuine error is different: this call can fail on its own — the parts side
+  // of the pool is newer than the shim side — and swallowing that would leave
+  // an empty space that looks like "nobody has recorded anything".
+  if (!result) return null;
+  if (result.state === "error") {
+    return (
+      <div className="mt-6">
+        <h2 className="mb-2 text-sm font-bold">Parts, and how often</h2>
+        <p className="text-xs leading-relaxed text-faint">
+          Could not read the parts side of the pool: {result.message}
+        </p>
+      </div>
+    );
+  }
+  if (result.state !== "ok") return null;
+
+  const units = unitLabel(bike.units);
+  const rows = INTERVAL_ITEMS.map((key) => ({
+    key,
+    pool: result.intervals.items[key] ?? null,
+    mineKm: mine.kmBetween[key] ?? null,
+  })).filter((row) => row.pool?.kmBetween != null || row.mineKm != null);
+
+  if (!rows.length) {
+    return (
+      <div className="mt-6">
+        <h2 className="mb-2 text-sm font-bold">Parts, and how often</h2>
+        <p className="text-xs leading-relaxed text-faint">
+          Nothing yet. Once a few riders have logged two services far enough
+          apart and ticked what they replaced, this will show how far everybody
+          gets between one chain, filter or set of pads and the next.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-6">
+      <h2 className="mb-2 text-sm font-bold">Parts, and how often</h2>
+      <p className="mb-1 text-xs leading-relaxed text-faint">
+        How far you get between replacing something, against how far everybody
+        else does. Measured across the distance each log actually covers —
+        oldest recorded reading to newest — never the whole odometer, because
+        nobody watched the kilometres before the log started.
+      </p>
+      <p className="mb-3 text-xs leading-relaxed text-faint">
+        {mine.spanKm >= 1000 ? (
+          <>
+            Yours is drawn from {mine.services} services across{" "}
+            {formatNumber(fromKm(mine.spanKm, bike.units ?? "km"))} {units}.
+          </>
+        ) : (
+          <>
+            Your own figures need two services at least 1,000 km apart. Until
+            then only the pool side has anything to show.
+          </>
+        )}
+      </p>
+
+      <Card className="divide-y divide-line p-0">
+        {rows.map(({ key, pool, mineKm }) => {
+          const poolKm = pool?.kmBetween ?? null;
+          const peak = Math.max(mineKm ?? 0, poolKm ?? 0) || 1;
+          return (
+            <div key={key} className="px-2.5 py-2">
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="text-xs font-semibold">
+                  {t(`part.${key}`)}
+                </span>
+                <span className="shrink-0 font-mono text-[11px] font-normal text-faint">
+                  {pool?.enough
+                    ? `${pool.bikes} bikes`
+                    : pool
+                      ? `${pool.bikes} of ${result.intervals.minBikes} bikes`
+                      : "—"}
+                </span>
+              </div>
+
+              <Row
+                label="You"
+                km={mineKm}
+                peak={peak}
+                units={bike.units}
+                colour={MINE}
+              />
+              <Row
+                label="The pool"
+                km={pool?.enough ? poolKm : null}
+                peak={peak}
+                units={bike.units}
+                colour={POOL}
+              />
+            </div>
+          );
+        })}
+      </Card>
+
+      <p className="mt-2 text-xs leading-relaxed text-faint">
+        A part only appears here because riders tick it, so this is how often
+        the people who record a thing record it — not how often it needs doing.
+        The bike count beside each line is how much weight it will carry. Oil is
+        counted as one job whichever grade went in, and the two catch-all
+        entries are left out: they say something was done, not what, so no
+        interval can be got from them.
+      </p>
+    </div>
+  );
+}
+
+/** One side of one part: a bar drawn against the larger of the two, and the
+    figure printed, because a bar alone cannot be read off. */
+function Row({
+  label,
+  km,
+  peak,
+  units,
+  colour,
+}: {
+  label: string;
+  km: number | null;
+  peak: number;
+  units: Bike["units"];
+  colour: string;
+}) {
+  return (
+    <div className="mt-1 flex items-center gap-2">
+      <span className="w-14 shrink-0 text-[11px] text-faint">{label}</span>
+      <span className="h-2 flex-1 overflow-hidden rounded-sm bg-line/40">
+        {km != null && (
+          <span
+            className="block h-full rounded-sm"
+            style={{ width: `${Math.max(2, (km / peak) * 100)}%`, backgroundColor: colour }}
+          />
+        )}
+      </span>
+      <span className="w-24 shrink-0 text-right font-mono text-[11px] tabular-nums text-muted">
+        {km == null ? "—" : `${formatNumber(fromKm(km, units ?? "km"))} ${unitLabel(units)}`}
+      </span>
+    </div>
   );
 }

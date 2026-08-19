@@ -322,6 +322,23 @@ async function syncContributions(supabase: SupabaseClient): Promise<void> {
       retract: payload.retract,
     });
     if (pushError) throw pushError;
+
+    /*
+     * The parts, second and separately.
+     *
+     * The signature is only recorded once both have landed, so a failure here
+     * leaves the whole payload looking unsent and the next sync repeats it.
+     * Repeating is free — every row is keyed on a hash of the same inputs, so
+     * a second push lands on top of the first rather than beside it — whereas
+     * recording success after the readings alone would strand the parts until
+     * the rider next edited something.
+     */
+    const { error: servicesError } = await supabase.rpc("contribute_services", {
+      services: payload.services,
+      retract: payload.retractServices,
+    });
+    if (servicesError) throw servicesError;
+
     next.lastPushed = payload.signature;
     next.lastPushedAt = new Date().toISOString();
   }

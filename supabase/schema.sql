@@ -538,6 +538,274 @@ revoke all on function public.contribute_readings(jsonb, text[]) from public, an
 grant execute on function public.contribute_readings(jsonb, text[]) to authenticated;
 
 
+-- ---------------------------------------------------------------------------
+-- THE PARTS SIDE OF THE POOL
+--
+-- pooled_readings is one row per valve, which is the right grain for a shim and
+-- the wrong one for a tick-list: the parts replaced belong to the service, not
+-- to each of its eight valves, and storing them per valve would repeat the same
+-- array eight times and invite anything counting them to count it eight times.
+--
+-- So this is a second table at the grain the fact actually has. It carries the
+-- same keys, derived from the same bike token, and lives under the same locks.
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.pooled_services (
+  -- hash(token, service). The same key the eight readings of this service
+  -- carry, so the two tables line up without either one naming a rider.
+  service_key text primary key,
+  bike_key    text not null,
+  model_id    text,
+  year        integer,
+  engine_id   text not null,
+  -- "2026-08", for the same reason as pooled_readings: a day would make a
+  -- service easy to line up with somebody describing their afternoon.
+  month       text,
+  -- Kilometres, always. This is the column the whole feature rests on: the
+  -- distance a rider's log covers is the newest of these minus the oldest, and
+  -- a pool mixing miles into it would report intervals 60% short.
+  odometer    integer,
+  country     text,
+  -- Permanent ids from src/lib/serviceItems.ts, held in list order.
+  items       text[],
+  created_at  text not null,
+  updated_at  text not null,
+  -- Server clock, and the only date here a rider cannot influence — which is
+  -- why the retraction window is measured against it. Pointedly absent from
+  -- the update list below, so editing a service cannot push it forward and buy
+  -- an old row a fresh month in which to be deleted.
+  pooled_at   timestamptz not null default now()
+);
+
+-- Guarded so the file stays re-runnable against a database that already has
+-- the table from an earlier paste.
+alter table public.pooled_services
+  add column if not exists pooled_at timestamptz not null default now();
+
+-- Both questions the panel asks: every service one bike logged, in odometer
+-- order, so a span is a single index scan; and every service for a model.
+create index if not exists pooled_services_bike_idx
+  on public.pooled_services (bike_key, odometer);
+create index if not exists pooled_services_model_idx
+  on public.pooled_services (model_id, year);
+
+alter table public.pooled_services enable row level security;
+revoke all on public.pooled_services from anon, authenticated;
+
+
+-- Written separately from the readings rather than folded into the same call.
+--
+-- They are independent facts about the same service, and a rider whose parts
+-- arrive one sync after their shims is in no worse a state than one who has not
+-- synced yet — where widening contribute_readings would have meant editing the
+-- one function that is presently carrying the entire pool, to no benefit.
+--
+-- Retraction obeys the same thirty-day window, and for the same reason: taking
+-- a mistyped tick back out is a thing a rider should be able to do while it is
+-- fresh, and not a thing anybody should be able to do forever.
+create or replace function public.contribute_services(
+  services jsonb   default '[]'::jsonb,
+  retract  text[]  default '{}'::text[]
+)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  written integer := 0;
+begin
+  if auth.uid() is null then
+    raise exception 'must be signed in to contribute';
+  end if;
+
+  if jsonb_array_length(coalesce(services, '[]'::jsonb)) > 5000
+     or coalesce(array_length(retract, 1), 0) > 5000 then
+    raise exception 'too many rows in one call';
+  end if;
+
+  if coalesce(array_length(retract, 1), 0) > 0 then
+    delete from public.pooled_services
+     where service_key = any(retract)
+       and pooled_at > now() - interval '30 days';
+  end if;
+
+  insert into public.pooled_services (
+    service_key, bike_key, model_id, year, engine_id, month, odometer,
+    country, items, created_at, updated_at
+  )
+  select
+    s.service_key, s.bike_key, s.model_id, s.year, s.engine_id, s.month,
+    s.odometer,
+    case when s.country ~ '^[A-Za-z]{2}$' then upper(s.country) end,
+    s.items,
+    s.created_at, s.updated_at
+  from jsonb_to_recordset(coalesce(services, '[]'::jsonb)) as s (
+    service_key text, bike_key text, model_id text, year integer,
+    engine_id text, month text, odometer integer, country text,
+    items text[], created_at text, updated_at text
+  )
+  on conflict (service_key) do update set
+    bike_key   = excluded.bike_key,
+    model_id   = excluded.model_id,
+    year       = excluded.year,
+    engine_id  = excluded.engine_id,
+    month      = excluded.month,
+    odometer   = excluded.odometer,
+    country    = excluded.country,
+    items      = excluded.items,
+    updated_at = excluded.updated_at;
+
+  get diagnostics written = row_count;
+  return written;
+end;
+$$;
+
+revoke all on function public.contribute_services(jsonb, text[]) from public, anon;
+grant execute on function public.contribute_services(jsonb, text[]) to authenticated;
+
+
+-- How often everybody else replaces the same things.
+--
+-- THE MEASUREMENT, stated plainly because every part of it is a choice:
+--
+--   * A bike's distance is the newest logged odometer minus the OLDEST, never
+--     the odometer itself. A rider who joins with 90,000 km showing and logs
+--     two services 8,000 km apart has told the pool about 8,000 km of running,
+--     not 90,000. Using the clock would divide every count by a distance
+--     nobody watched and make everyone look impossibly thorough.
+--   * A bike needs two logged services before it has a span at all. One
+--     service is a span of zero, which is not an interval of zero — it is no
+--     answer, and it drops out.
+--   * The interval is that span divided by the number of services the part was
+--     ticked at. This slightly UNDERSTATES the interval whenever the very first
+--     logged service ticks the part, because that tick was earned over distance
+--     covered before the log began, which the span does not include. Known,
+--     accepted, and the reason the sample size is returned beside every figure.
+--   * Each bike's own interval is averaged across bikes, one bike one vote, so
+--     a rider with sixty services does not drown out one with three.
+--
+-- TWO NORMALISATIONS, without which the numbers would be quietly wrong:
+--
+--   * `oil-50w` and `oil-60w` are one job. A rider who moves from thin to thick
+--     oil as the engine wears has half their changes filed under each id, and
+--     counted apart both come back at twice the true interval — the app would
+--     report that nobody changes their oil. They fold into one `oil`.
+--   * `engine-parts` and `chassis-parts` are excluded outright. They record
+--     that something was done, not what, so an interval for them measures
+--     nothing. serviceItems.ts says as much where they are declared.
+--
+-- What this cannot tell you, and the page must not imply: a part only appears
+-- here if somebody ticked it. The interval is "how often the riders who record
+-- this, record it" — never "how often it needs doing". A part that forty riders
+-- track and two hundred ignore still shows forty riders' habit, which is why
+-- the bike count goes back with every line.
+create or replace function public.pool_service_intervals(
+  model_ids text[]    default null,
+  years     integer[] default null
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  min_bikes constant integer := 3;
+  -- Below this a "span" is two services in the same week, and dividing by it
+  -- produces an interval of a few hundred kilometres that is arithmetic rather
+  -- than evidence.
+  min_span_km constant integer := 1000;
+  result jsonb;
+  span_bikes integer;
+begin
+  if auth.uid() is null then
+    raise exception 'must be signed in to read the pool';
+  end if;
+
+  with scoped as (
+    select *
+      from public.pooled_services
+     -- A service with no odometer cannot sit at either end of a span, and
+     -- cannot be placed inside one either.
+     where odometer is not null
+       and (model_ids is null or model_id = any(model_ids))
+       and (years     is null or year     = any(years))
+  ),
+  spans as (
+    select bike_key,
+           (max(odometer) - min(odometer))::numeric as span_km
+      from scoped
+     group by bike_key
+    having count(*) >= 2
+       and max(odometer) - min(odometer) >= min_span_km
+  ),
+  ticks as (
+    select s.bike_key,
+           s.service_key,
+           case when item in ('oil-50w', 'oil-60w') then 'oil' else item end as item
+      from scoped s
+      cross join lateral unnest(coalesce(s.items, '{}'::text[])) as item
+     where item not in ('engine-parts', 'chassis-parts')
+  ),
+  per_bike as (
+    -- distinct service_key, so a service somehow carrying both oil grades
+    -- counts as one oil change rather than two.
+    select t.bike_key,
+           t.item,
+           count(distinct t.service_key)::numeric as n,
+           sp.span_km
+      from ticks t
+      join spans sp on sp.bike_key = t.bike_key
+     group by t.bike_key, t.item, sp.span_km
+  ),
+  per_item as (
+    select item,
+           count(*)::int         as bikes,
+           sum(n)::int           as services,
+           round(avg(span_km / n))::int as km_between
+      from per_bike
+     group by item
+  )
+  select coalesce(
+           jsonb_object_agg(
+             item,
+             jsonb_build_object(
+               'bikes',     bikes,
+               'services',  services,
+               'enough',    bikes >= min_bikes,
+               'kmBetween', case when bikes >= min_bikes then km_between end
+             )
+           ),
+           '{}'::jsonb
+         )
+    into result
+    from per_item;
+
+  select count(*) into span_bikes from (
+    select bike_key
+      from public.pooled_services
+     where odometer is not null
+       and (model_ids is null or model_id = any(model_ids))
+       and (years     is null or year     = any(years))
+     group by bike_key
+    having count(*) >= 2
+       and max(odometer) - min(odometer) >= min_span_km
+  ) s;
+
+  -- An empty pool answers in the right shape, so the caller never has to tell
+  -- "nothing matched" apart from "the reply was malformed".
+  return jsonb_build_object(
+    'items',    coalesce(result, '{}'::jsonb),
+    'bikes',    coalesce(span_bikes, 0),
+    'minBikes', min_bikes
+  );
+end;
+$$;
+
+revoke all on function public.pool_service_intervals(text[], integer[]) from public, anon;
+grant execute on function public.pool_service_intervals(text[], integer[]) to authenticated;
+
+
 -- The only way out.
 --
 -- The Compare page needs to read the pool, and the table above is sealed: no

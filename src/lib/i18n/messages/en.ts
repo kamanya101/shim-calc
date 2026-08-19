@@ -128,6 +128,10 @@ const en = {
     "Tick what went on at this service. Left untouched is simply “not this time” — nothing here has to be filled in.",
 
   // The parts themselves. Ids are permanent and English; only these move.
+  // The two grades combined, for the interval panel on Compare: how often the
+  // oil is changed is one question, and a rider who moves from thin to thick
+  // as the engine wears has not started doing a different job.
+  "part.oil": "Oil (any grade)",
   "part.oil-50w": "Oil 50W",
   "part.oil-60w": "Oil 60W",
   "part.air-filter": "Air Filter",

@@ -133,6 +133,7 @@ const af = {
     "Merk wat by hierdie diens opgesit is. Onaangeraak beteken eenvoudig “nie hierdie keer nie” — niks hier hoef ingevul te word nie.",
 
   // The parts themselves. Ids are permanent and English; only these move.
+  "part.oil": "Olie (enige graad)",
   "part.oil-50w": "Olie 50W",
   "part.oil-60w": "Olie 60W",
   "part.air-filter": "Lugfilter",
