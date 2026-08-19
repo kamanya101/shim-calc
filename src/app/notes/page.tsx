@@ -52,7 +52,36 @@ export default function Page() {
         subtitle="Read this before you trust anything on the other screens."
       />
 
+      {/*
+        First, and deliberately so. A rider who reads no further than the top
+        of this page should still end up with the app on their home screen —
+        that is what turns it from a website they have to find again into the
+        thing that works in a garage with no signal, and it is the one
+        instruction here that has to happen before any of the rest is any use.
+      */}
       <section className="mt-5">
+        <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-accent">
+          Install it on your phone so it behaves and works like an app
+        </h2>
+        <ul className="space-y-1.5 text-sm leading-relaxed text-muted">
+          <li>
+            <strong className="text-ink">iPhone:</strong> open in Safari, tap
+            Share, then &ldquo;Add to Home Screen&rdquo;.
+          </li>
+          <li>
+            <strong className="text-ink">Android:</strong> open in Chrome, tap
+            the menu, then &ldquo;Install app&rdquo; or &ldquo;Add to Home
+            screen&rdquo;.
+          </li>
+        </ul>
+        <p className="mt-2 text-sm leading-relaxed text-muted">
+          Once installed it opens full screen and works with no signal. Your
+          records are stored on the device — back them up from the History
+          screen.
+        </p>
+      </section>
+
+      <section className="mt-6">
         <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-accent">
           How to use this
         </h2>
@@ -170,25 +199,29 @@ ideal shim = stack − the gap you want`}
 
       <ImportPrompt />
 
+      {/*
+        Above the risk note rather than below it. A rider who has just been told
+        to check everything themselves is exactly the rider with something to
+        say, and burying the address under the disclaimer is how you never hear
+        from them.
+      */}
       <section className="mt-6">
         <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-accent">
-          Install it on your phone
+          Tell me what is wrong with it
         </h2>
-        <ul className="space-y-1.5 text-sm leading-relaxed text-muted">
-          <li>
-            <strong className="text-ink">iPhone:</strong> open in Safari, tap
-            Share, then &ldquo;Add to Home Screen&rdquo;.
-          </li>
-          <li>
-            <strong className="text-ink">Android:</strong> open in Chrome, tap
-            the menu, then &ldquo;Install app&rdquo; or &ldquo;Add to Home
-            screen&rdquo;.
-          </li>
-        </ul>
-        <p className="mt-2 text-sm leading-relaxed text-muted">
-          Once installed it opens full screen and works with no signal. Your
-          records are stored on the device — back them up from the History
-          screen.
+        <p className="text-sm leading-relaxed text-muted">
+          Found a mistake, a shim size that is not stocked any more, or
+          something that does not match your own bike? Or just want something
+          added? Email me at{" "}
+          <a
+            href="mailto:kamanya101@gmail.com?subject=Shim%20Calculator"
+            className="font-semibold text-accent underline underline-offset-2"
+          >
+            kamanya101@gmail.com
+          </a>
+          . Corrections from people who have actually had the cams out are worth
+          more than anything I can check on my own, and the shared figures only
+          get better the more of them there are.
         </p>
       </section>
 
