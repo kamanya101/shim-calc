@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { formatDate, mm, signedMm } from "@/lib/format";
+import { formatDate, formatNumber, mm, signedMm } from "@/lib/format";
 import type {
   EngineSpec,
   Microns,
@@ -9,6 +9,7 @@ import type {
   ValvePosition,
   ValveType,
 } from "@/lib/types";
+import { useT } from "./LocaleProvider";
 import { Card, EmptyState } from "./ui";
 
 /**
@@ -91,8 +92,11 @@ function buildShimSteps(
     if (found.length !== positions.length) return;
 
     const x = record.odometer ?? index;
+    // Through formatNumber rather than toLocaleString, which takes no locale
+    // and so follows the browser instead of the app — an Afrikaans rider was
+    // getting "66,666" on these axes while the rest of the app said "66 666".
     const label = record.odometer
-      ? record.odometer.toLocaleString()
+      ? formatNumber(record.odometer)
       : formatDate(record.date);
 
     points.push({ x, y: mean(found), kind: "found", label, valves: found.length });
@@ -116,6 +120,7 @@ export function AverageDrift({
   engine: EngineSpec;
   records: ServiceRecord[];
 }) {
+  const t = useT();
   const series = useMemo(
     () =>
       (["intake", "exhaust"] as ValveType[]).map((type) => {
@@ -132,9 +137,8 @@ export function AverageDrift({
   // reads as a broken chart rather than an empty one.
   if (series.every((s) => s.points.length === 0)) {
     return (
-      <EmptyState title="No shim sizes recorded yet">
-        Once a service has the thickness of all four shims entered, this will
-        chart how they have thinned out over the life of the engine.
+      <EmptyState title={t("trend.emptyTitle")}>
+        {t("trend.emptyAverage")}
       </EmptyState>
     );
   }
@@ -142,34 +146,48 @@ export function AverageDrift({
   return (
     <div>
       <p className="mb-2 text-xs leading-relaxed text-faint">
-        Average shim thickness, all four valves. Flat between services because
-        the same shims are still in there; every step is a change you made. The
-        drop from one end to the other is how far the valves have sunk.
+        {t("trend.averageCaption")}
       </p>
       <div className="grid gap-2.5 sm:grid-cols-2">
         {series.map(({ type, count, points }) => (
           <Card key={type} className="p-2.5">
-            {/* capitalize stays on the valve type alone — applied to the whole
-                heading it also renders the units as "Mm". */}
+            {/*
+              A whole heading per valve type rather than the type dropped into
+              a shared sentence. German runs the two words together as one
+              compound — Einlassventile — so there is no slot to drop it into,
+              and the old CSS capitalize on the injected word did not survive
+              translation either.
+            */}
             <h4 className="mb-1 flex items-baseline justify-between gap-2 text-xs font-semibold">
               <span>
-                Average across all {count}{" "}
-                <span className="capitalize">{type}</span> Valves
+                {t(
+                  type === "intake"
+                    ? "trend.averageIntake"
+                    : "trend.averageExhaust",
+                  { count },
+                )}
               </span>
               {overallChange(points) !== undefined && (
                 <span className="shrink-0 font-mono font-normal text-faint">
-                  {signedMm(overallChange(points))} mm overall
+                  {t("trend.overall", {
+                    delta: signedMm(overallChange(points)),
+                  })}
                 </span>
               )}
             </h4>
             {points.length === 0 ? (
               <p className="py-4 text-center text-[11px] text-faint">
-                no shim sizes recorded
+                {t("trend.noneAverage")}
               </p>
             ) : (
               <ShimPanel
                 points={points}
-                label={`all ${count} ${type} valves`}
+                label={t(
+                  type === "intake"
+                    ? "trend.allIntakeValves"
+                    : "trend.allExhaustValves",
+                  { count },
+                )}
                 height={104}
               />
             )}
@@ -187,6 +205,7 @@ export function TrendChart({
   engine: EngineSpec;
   records: ServiceRecord[];
 }) {
+  const t = useT();
   const [showTable, setShowTable] = useState(false);
 
   const ordered = useMemo(() => orderRecords(records), [records]);
@@ -202,9 +221,8 @@ export function TrendChart({
 
   if (series.every((s) => s.points.length === 0)) {
     return (
-      <EmptyState title="No shim sizes recorded yet">
-        Enter the thickness of a shim you pulled and this will start charting it
-        valve by valve.
+      <EmptyState title={t("trend.emptyTitle")}>
+        {t("trend.emptyPerValve")}
       </EmptyState>
     );
   }
@@ -212,16 +230,13 @@ export function TrendChart({
   return (
     <div>
       <div className="mb-2 flex items-center justify-between gap-2">
-        <p className="text-xs text-faint">
-          Thickness of the shim in each valve. Solid is what came out, hollow is
-          what went back in.
-        </p>
+        <p className="text-xs text-faint">{t("trend.perValveCaption")}</p>
         <button
           type="button"
           onClick={() => setShowTable((v) => !v)}
           className="shrink-0 text-[11px] font-semibold text-accent underline underline-offset-2"
         >
-          {showTable ? "show charts" : "show table"}
+          {showTable ? t("trend.showCharts") : t("trend.showTable")}
         </button>
       </div>
 
@@ -232,7 +247,7 @@ export function TrendChart({
           {series.map(({ position, points }) => (
             <Card key={position.id} className="p-2.5">
               <h4 className="mb-1 flex items-baseline justify-between gap-2 text-xs font-semibold">
-                <span>{position.label}</span>
+                <span>{t(`valve.${position.id}`)}</span>
                 {overallChange(points) !== undefined && (
                   <span className="font-mono font-normal text-faint">
                     {signedMm(overallChange(points))} mm
@@ -241,10 +256,14 @@ export function TrendChart({
               </h4>
               {points.length === 0 ? (
                 <p className="py-4 text-center text-[11px] text-faint">
-                  no shim size recorded
+                  {t("trend.nonePerValve")}
                 </p>
               ) : (
-                <ShimPanel points={points} label={position.label} height={84} />
+                <ShimPanel
+                  points={points}
+                  label={t(`valve.${position.id}`)}
+                  height={84}
+                />
               )}
             </Card>
           ))}
@@ -263,6 +282,7 @@ function ShimPanel({
   label: string;
   height: number;
 }) {
+  const t = useT();
   const values = points.map((p) => p.y);
   // Scaled to the shims themselves. There is no band to keep in frame, and the
   // whole point is to see a change of a few hundredths, so a scale wide enough
@@ -296,7 +316,14 @@ function ShimPanel({
       viewBox={`0 0 ${W} ${height}`}
       className="w-full"
       role="img"
-      aria-label={`${label} shim thickness over ${points.length / 2} services, from ${mm(points[0].y)} to ${mm(last.y)} mm`}
+      // Two points per service — one shim out, one in — so the count of
+      // services is half the count of points.
+      aria-label={t("trend.panelLabel", {
+        label,
+        count: points.length / 2,
+        from: mm(points[0].y),
+        to: mm(last.y),
+      })}
     >
       {/* Thickest and thinnest actually recorded, so the axis states the real
           range rather than a tolerance that does not apply to a shim. */}
@@ -340,8 +367,23 @@ function ShimPanel({
               strokeWidth={2}
             />
           )}
+          {/*
+            Four whole sentences rather than one assembled from "that came
+            out" / "that went in" and an optional "(mean of n)" tail. Which of
+            the four it is changes the shape of the sentence, not just a word
+            in the middle of it.
+          */}
           <title>
-            {`${p.label} — shim ${p.kind === "found" ? "that came out" : "that went in"} ${mm(p.y)} mm${p.valves > 1 ? ` (mean of ${p.valves})` : ""}`}
+            {t(
+              p.valves > 1
+                ? p.kind === "found"
+                  ? "trend.pointFoundMean"
+                  : "trend.pointSetMean"
+                : p.kind === "found"
+                  ? "trend.pointFound"
+                  : "trend.pointSet",
+              { label: p.label, size: mm(p.y), count: p.valves },
+            )}
           </title>
         </g>
       ))}
@@ -383,16 +425,16 @@ function DataTable({
   engine: EngineSpec;
   records: ServiceRecord[];
 }) {
+  const t = useT();
+
   return (
     <div className="overflow-x-auto rounded-xl border border-line">
       <table className="w-full min-w-[34rem] text-left text-xs">
-        <caption className="sr-only">
-          Thickness in millimetres of the shim found in each valve, by service
-        </caption>
+        <caption className="sr-only">{t("trend.tableCaption")}</caption>
         <thead>
           <tr className="border-b border-line bg-raised/50">
             <th scope="col" className="px-2.5 py-2 font-semibold">
-              Valve
+              {t("summary.colValve")}
             </th>
             {records.map((record) => (
               <th
@@ -401,7 +443,7 @@ function DataTable({
                 className="px-2.5 py-2 text-right font-semibold whitespace-nowrap"
               >
                 {record.odometer
-                  ? record.odometer.toLocaleString()
+                  ? formatNumber(record.odometer)
                   : formatDate(record.date)}
               </th>
             ))}
@@ -411,7 +453,7 @@ function DataTable({
           {engine.positions.map((position) => (
             <tr key={position.id}>
               <th scope="row" className="px-2.5 py-1.5 font-medium text-muted">
-                {position.label}
+                {t(`valve.${position.id}`)}
               </th>
               {records.map((record) => {
                 const shim = record.readings[position.id]?.shim;

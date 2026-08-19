@@ -302,6 +302,57 @@ const fr = {
   "history.imported": "Importé — {added} nouveaux, {merged} mis à jour.",
 
   // ---------------------------------------------------------------------
+  // The charts
+  // ---------------------------------------------------------------------
+  "trend.emptyTitle": "Aucune épaisseur de pastille enregistrée",
+  "trend.emptyAverage":
+    "Dès qu’un entretien contiendra l’épaisseur des quatre pastilles, ce graphique montrera comment elles se sont amincies au fil de la vie du moteur.",
+  "trend.emptyPerValve":
+    "Saisis l’épaisseur d’une pastille que tu as sortie et le tracé commencera, soupape par soupape.",
+
+  "trend.averageCaption":
+    "Épaisseur moyenne des pastilles, les quatre soupapes. Plat entre deux entretiens parce que ce sont toujours les mêmes pastilles ; chaque marche est un changement que tu as fait. La chute d’un bout à l’autre montre à quel point les soupapes se sont enfoncées.",
+  "trend.averageIntake": {
+    one: "Moyenne sur la {count} soupape d’admission",
+    other: "Moyenne sur les {count} soupapes d’admission",
+  },
+  "trend.averageExhaust": {
+    one: "Moyenne sur la {count} soupape d’échappement",
+    other: "Moyenne sur les {count} soupapes d’échappement",
+  },
+  "trend.allIntakeValves": {
+    one: "la {count} soupape d’admission",
+    other: "les {count} soupapes d’admission",
+  },
+  "trend.allExhaustValves": {
+    one: "la {count} soupape d’échappement",
+    other: "les {count} soupapes d’échappement",
+  },
+  "trend.overall": "{delta} mm au total",
+  "trend.noneAverage": "aucune épaisseur enregistrée",
+  "trend.nonePerValve": "aucune épaisseur enregistrée",
+
+  "trend.perValveCaption":
+    "Épaisseur de la pastille dans chaque soupape. Plein pour ce qui est sorti, creux pour ce qui est remonté.",
+  "trend.showTable": "afficher le tableau",
+  "trend.showCharts": "afficher les graphiques",
+
+  "trend.panelLabel": {
+    one: "{label} : épaisseur de pastille sur {count} entretien, de {from} à {to} mm",
+    other:
+      "{label} : épaisseur de pastille sur {count} entretiens, de {from} à {to} mm",
+  },
+  "trend.pointFound": "{label} — pastille sortie {size} mm",
+  "trend.pointSet": "{label} — pastille remontée {size} mm",
+  "trend.pointFoundMean":
+    "{label} — pastille sortie {size} mm (moyenne de {count})",
+  "trend.pointSetMean":
+    "{label} — pastille remontée {size} mm (moyenne de {count})",
+
+  "trend.tableCaption":
+    "Épaisseur en millimètres de la pastille trouvée dans chaque soupape, par entretien",
+
+  // ---------------------------------------------------------------------
   // Signing in
   // ---------------------------------------------------------------------
   "signIn.blurb":

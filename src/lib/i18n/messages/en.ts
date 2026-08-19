@@ -330,6 +330,65 @@ const en = {
   "history.imported": "Imported — {added} new, {merged} updated.",
 
   // ---------------------------------------------------------------------
+  // The charts
+  //
+  // Every one of these plots shim thickness — the metal disc — never the gap
+  // it leaves. Worth keeping straight when translating: "thickness" here is
+  // always the shim, and the word for the gap belongs to the valve cards.
+  // ---------------------------------------------------------------------
+  "trend.emptyTitle": "No shim sizes recorded yet",
+  "trend.emptyAverage":
+    "Once a service has the thickness of all four shims entered, this will chart how they have thinned out over the life of the engine.",
+  "trend.emptyPerValve":
+    "Enter the thickness of a shim you pulled and this will start charting it valve by valve.",
+
+  "trend.averageCaption":
+    "Average shim thickness, all four valves. Flat between services because the same shims are still in there; every step is a change you made. The drop from one end to the other is how far the valves have sunk.",
+  // A whole heading per valve type. German runs the two words into one
+  // compound, so there is no slot to drop "intake" into.
+  "trend.averageIntake": {
+    one: "Average across the {count} intake valve",
+    other: "Average across all {count} intake valves",
+  },
+  "trend.averageExhaust": {
+    one: "Average across the {count} exhaust valve",
+    other: "Average across all {count} exhaust valves",
+  },
+  "trend.allIntakeValves": {
+    one: "the {count} intake valve",
+    other: "all {count} intake valves",
+  },
+  "trend.allExhaustValves": {
+    one: "the {count} exhaust valve",
+    other: "all {count} exhaust valves",
+  },
+  "trend.overall": "{delta} mm overall",
+  "trend.noneAverage": "no shim sizes recorded",
+  "trend.nonePerValve": "no shim size recorded",
+
+  "trend.perValveCaption":
+    "Thickness of the shim in each valve. Solid is what came out, hollow is what went back in.",
+  "trend.showTable": "show table",
+  "trend.showCharts": "show charts",
+
+  // Read aloud in place of the chart, so it has to carry the same story the
+  // picture does: what is plotted, over how long, and how far it moved.
+  "trend.panelLabel": {
+    one: "{label} shim thickness over {count} service, from {from} to {to} mm",
+    other:
+      "{label} shim thickness over {count} services, from {from} to {to} mm",
+  },
+  "trend.pointFound": "{label} — shim that came out {size} mm",
+  "trend.pointSet": "{label} — shim that went in {size} mm",
+  "trend.pointFoundMean":
+    "{label} — shim that came out {size} mm (mean of {count})",
+  "trend.pointSetMean":
+    "{label} — shim that went in {size} mm (mean of {count})",
+
+  "trend.tableCaption":
+    "Thickness in millimetres of the shim found in each valve, by service",
+
+  // ---------------------------------------------------------------------
   // Signing in
   //
   // The one screen a rider meets before the app has any idea who they are, so

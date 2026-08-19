@@ -313,6 +313,57 @@ const af = {
   "history.imported": "Ingevoer — {added} nuut, {merged} bygewerk.",
 
   // ---------------------------------------------------------------------
+  // The charts
+  // ---------------------------------------------------------------------
+  "trend.emptyTitle": "Nog geen stelplaatjie-groottes aangeteken nie",
+  "trend.emptyAverage":
+    "Sodra ’n diens die dikte van al vier stelplaatjies bevat, sal dit hier wys hoe hulle oor die enjin se lewe dunner geword het.",
+  "trend.emptyPerValve":
+    "Sit die dikte in van ’n stelplaatjie wat jy uitgehaal het, en dit sal klep vir klep begin karteer.",
+
+  "trend.averageCaption":
+    "Gemiddelde stelplaatjie-dikte oor al vier kleppe. Plat tussen dienste omdat dieselfde stelplaatjies nog daarin is; elke trap is ’n verandering wat jy gemaak het. Die val van die een kant na die ander wys hoe diep die kleppe ingesak het.",
+  "trend.averageIntake": {
+    one: "Gemiddeld oor die {count} inlaatklep",
+    other: "Gemiddeld oor al {count} inlaatkleppe",
+  },
+  "trend.averageExhaust": {
+    one: "Gemiddeld oor die {count} uitlaatklep",
+    other: "Gemiddeld oor al {count} uitlaatkleppe",
+  },
+  "trend.allIntakeValves": {
+    one: "die {count} inlaatklep",
+    other: "al {count} inlaatkleppe",
+  },
+  "trend.allExhaustValves": {
+    one: "die {count} uitlaatklep",
+    other: "al {count} uitlaatkleppe",
+  },
+  "trend.overall": "{delta} mm altesaam",
+  "trend.noneAverage": "geen stelplaatjie-groottes aangeteken nie",
+  "trend.nonePerValve": "geen stelplaatjie-grootte aangeteken nie",
+
+  "trend.perValveCaption":
+    "Dikte van die stelplaatjie in elke klep. Solied is wat uitgekom het, hol is wat teruggegaan het.",
+  "trend.showTable": "wys tabel",
+  "trend.showCharts": "wys grafieke",
+
+  "trend.panelLabel": {
+    one: "{label} stelplaatjie-dikte oor {count} diens, van {from} tot {to} mm",
+    other:
+      "{label} stelplaatjie-dikte oor {count} dienste, van {from} tot {to} mm",
+  },
+  "trend.pointFound": "{label} — stelplaatjie wat uitgekom het {size} mm",
+  "trend.pointSet": "{label} — stelplaatjie wat ingegaan het {size} mm",
+  "trend.pointFoundMean":
+    "{label} — stelplaatjie wat uitgekom het {size} mm (gemiddeld van {count})",
+  "trend.pointSetMean":
+    "{label} — stelplaatjie wat ingegaan het {size} mm (gemiddeld van {count})",
+
+  "trend.tableCaption":
+    "Dikte in millimeter van die stelplaatjie wat in elke klep gevind is, per diens",
+
+  // ---------------------------------------------------------------------
   // Signing in
   // ---------------------------------------------------------------------
   "signIn.blurb":

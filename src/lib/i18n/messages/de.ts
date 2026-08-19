@@ -309,6 +309,57 @@ const de = {
   "history.imported": "Importiert — {added} neu, {merged} aktualisiert.",
 
   // ---------------------------------------------------------------------
+  // The charts
+  // ---------------------------------------------------------------------
+  "trend.emptyTitle": "Noch keine Plättchenstärken erfasst",
+  "trend.emptyAverage":
+    "Sobald bei einem Service die Stärke aller vier Plättchen eingetragen ist, zeigt diese Grafik, wie dünn sie über das Motorleben geworden sind.",
+  "trend.emptyPerValve":
+    "Trag die Stärke eines ausgebauten Plättchens ein, dann beginnt hier die Darstellung Ventil für Ventil.",
+
+  "trend.averageCaption":
+    "Mittlere Plättchenstärke über alle vier Ventile. Zwischen den Services flach, weil dieselben Plättchen noch drin sind; jede Stufe ist eine Änderung von dir. Der Abfall von einem Ende zum anderen zeigt, wie weit sich die Ventile eingearbeitet haben.",
+  "trend.averageIntake": {
+    one: "Mittelwert über das {count} Einlassventil",
+    other: "Mittelwert über alle {count} Einlassventile",
+  },
+  "trend.averageExhaust": {
+    one: "Mittelwert über das {count} Auslassventil",
+    other: "Mittelwert über alle {count} Auslassventile",
+  },
+  "trend.allIntakeValves": {
+    one: "das {count} Einlassventil",
+    other: "alle {count} Einlassventile",
+  },
+  "trend.allExhaustValves": {
+    one: "das {count} Auslassventil",
+    other: "alle {count} Auslassventile",
+  },
+  "trend.overall": "{delta} mm insgesamt",
+  "trend.noneAverage": "keine Plättchenstärken erfasst",
+  "trend.nonePerValve": "keine Plättchenstärke erfasst",
+
+  "trend.perValveCaption":
+    "Stärke des Plättchens in jedem Ventil. Gefüllt ist, was herauskam, hohl ist, was wieder hineinging.",
+  "trend.showTable": "Tabelle zeigen",
+  "trend.showCharts": "Grafiken zeigen",
+
+  "trend.panelLabel": {
+    one: "{label}: Plättchenstärke über {count} Service, von {from} auf {to} mm",
+    other:
+      "{label}: Plättchenstärke über {count} Services, von {from} auf {to} mm",
+  },
+  "trend.pointFound": "{label} — ausgebautes Plättchen {size} mm",
+  "trend.pointSet": "{label} — eingebautes Plättchen {size} mm",
+  "trend.pointFoundMean":
+    "{label} — ausgebautes Plättchen {size} mm (Mittel aus {count})",
+  "trend.pointSetMean":
+    "{label} — eingebautes Plättchen {size} mm (Mittel aus {count})",
+
+  "trend.tableCaption":
+    "Stärke des in jedem Ventil vorgefundenen Plättchens in Millimetern, nach Service",
+
+  // ---------------------------------------------------------------------
   // Signing in
   // ---------------------------------------------------------------------
   "signIn.blurb":
