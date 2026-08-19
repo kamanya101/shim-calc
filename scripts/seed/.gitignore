@@ -1,0 +1,14 @@
+# members.json holds a working password for every seeded account. It is
+# reproducible from generate.mjs — the generator is seeded, so the same file
+# comes back byte for byte — which is the whole reason it does not need to be
+# in git and should not be.
+members.json
+
+# Which accounts have already been pushed. Local bookkeeping for a run in
+# progress, meaningless on any other machine.
+progress.json
+progress-services.json
+
+# Emails left behind by a half-finished run, kept only long enough to delete
+# them from the database.
+orphaned-accounts.json
