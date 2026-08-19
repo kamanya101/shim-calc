@@ -9,12 +9,14 @@ import { AccountCard } from "./AccountCard";
 import { BikeTabs } from "./BikeTabs";
 import { ContributionCard } from "./ContributionCard";
 import { LegacyImport } from "./LegacyImport";
+import { useT } from "./LocaleProvider";
 import { useRecords } from "./RecordsProvider";
 import { AverageDrift, TrendChart } from "./TrendChart";
 import { Button, Card, Chip, PageHeader } from "./ui";
 import { VinGate } from "./VinGate";
 
 export function History() {
+  const t = useT();
   const router = useRouter();
   const {
     ready,
@@ -33,7 +35,7 @@ export function History() {
   const fileInput = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  if (!ready) return <p className="p-4 text-sm text-faint">Loading…</p>;
+  if (!ready) return <p className="p-4 text-sm text-faint">{t("common.loading")}</p>;
 
   const sorted = sortRecords(records);
 
@@ -41,7 +43,7 @@ export function History() {
     const result = importJson(await file.text());
     setMessage(
       result.ok
-        ? `Imported — ${result.added} new, ${result.merged} updated.`
+        ? t("history.imported", { added: result.added, merged: result.merged })
         : result.error,
     );
   };
@@ -49,11 +51,13 @@ export function History() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-5">
       <PageHeader
-        title="History"
+        title={t("history.heading")}
         subtitle={
           bikes.length > 1
-            ? `Services for ${bike.name.trim() || "this bike"}`
-            : "Every service you've saved on this device"
+            ? t("history.forBike", {
+                name: bike.name.trim() || t("history.thisBike"),
+              })
+            : t("history.allServices")
         }
       />
 
@@ -72,13 +76,17 @@ export function History() {
         of services is the archive you dig into afterwards, and on a phone it
         was pushing the graphs below the fold entirely.
       */}
-      <h2 className="mb-2 text-sm font-bold">Shim thickness over time</h2>
+      <h2 className="mb-2 text-sm font-bold">{t("history.driftHeading")}</h2>
       <AverageDrift engine={engine} records={records} />
 
-      <h2 className="mt-6 mb-2 text-sm font-bold">Shim thickness, valve by valve</h2>
+      <h2 className="mt-6 mb-2 text-sm font-bold">
+        {t("history.perValveHeading")}
+      </h2>
       <TrendChart engine={engine} records={records} />
 
-      <h2 className="mt-6 mb-2 text-sm font-bold">Services</h2>
+      <h2 className="mt-6 mb-2 text-sm font-bold">
+        {t("history.servicesHeading")}
+      </h2>
       <div className="space-y-2">
         {sorted.map((record) => {
           const status = sheetStatus(engine, record, aim);
@@ -104,9 +112,9 @@ export function History() {
                     <span className="text-xs text-faint">
                       {formatDate(record.date)}
                     </span>
-                    {isActive && <Chip tone="warn">open</Chip>}
+                    {isActive && <Chip tone="warn">{t("history.open")}</Chip>}
                     {record.source === "import" && (
-                      <Chip tone="neutral">imported</Chip>
+                      <Chip tone="neutral">{t("history.importedChip")}</Chip>
                     )}
                   </div>
                   {record.title && (
@@ -116,10 +124,15 @@ export function History() {
                   )}
                   <div className="mt-1.5 flex flex-wrap gap-1.5">
                     <Chip tone={status.measured === status.total ? "ok" : "neutral"}>
-                      {status.measured}/{status.total} measured
+                      {t("sheet.measured", {
+                        measured: status.measured,
+                        total: status.total,
+                      })}
                     </Chip>
                     {status.outOfSpec > 0 && (
-                      <Chip tone="bad">{status.outOfSpec} out of spec</Chip>
+                      <Chip tone="bad">
+                        {t("sheet.outOfSpec", { count: status.outOfSpec })}
+                      </Chip>
                     )}
                   </div>
                 </button>
@@ -133,7 +146,7 @@ export function History() {
                       router.push("/");
                     }}
                   >
-                    Next service
+                    {t("history.nextService")}
                   </Button>
                   <Button
                     variant="ghost"
@@ -141,14 +154,19 @@ export function History() {
                     onClick={() => {
                       if (
                         confirm(
-                          `Delete the service at ${formatOdometer(record.odometer, bike.units)}? This can't be undone.`,
+                          t("history.deleteConfirm", {
+                            odometer: formatOdometer(
+                              record.odometer,
+                              bike.units,
+                            ),
+                          }),
                         )
                       ) {
                         remove(record.id);
                       }
                     }}
                   >
-                    Delete
+                    {t("history.delete")}
                   </Button>
                 </div>
               </div>
@@ -159,7 +177,9 @@ export function History() {
 
       </VinGate>
 
-      <h2 className="mt-6 mb-2 text-sm font-bold">Account</h2>
+      <h2 className="mt-6 mb-2 text-sm font-bold">
+        {t("history.accountHeading")}
+      </h2>
       <div className="space-y-2">
         <AccountCard />
         <ContributionCard />
@@ -173,10 +193,11 @@ export function History() {
       */}
       <LegacyImport />
 
-      <h2 className="mt-6 mb-2 text-sm font-bold">Backup</h2>
+      <h2 className="mt-6 mb-2 text-sm font-bold">
+        {t("history.backupHeading")}
+      </h2>
       <p className="mb-2 text-xs leading-relaxed text-faint">
-        Your services are on this device and on the server under your account.
-        An export is the copy that depends on neither — keep one somewhere safe.
+        {t("history.backupBody")}
       </p>
       <div className="flex flex-wrap gap-2">
         <Button
@@ -188,10 +209,10 @@ export function History() {
             )
           }
         >
-          Export all
+          {t("history.exportAll")}
         </Button>
         <Button variant="ghost" onClick={() => fileInput.current?.click()}>
-          Import backup
+          {t("history.importBackup")}
         </Button>
         <input
           ref={fileInput}

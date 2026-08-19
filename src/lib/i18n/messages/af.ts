@@ -229,6 +229,90 @@ const af = {
   "time.days": { one: "{count} dag gelede", other: "{count} dae gelede" },
 
   // ---------------------------------------------------------------------
+  // Switching between bikes
+  // ---------------------------------------------------------------------
+  "bikeTabs.label": "Fietse",
+  "bikeTabs.unnamed": "Naamlose fiets",
+
+  // ---------------------------------------------------------------------
+  // Shims to order
+  // ---------------------------------------------------------------------
+  "order.heading": "Stelplaatjies om te bestel",
+  "order.emptyTitle": "Niks om te bestel nie",
+  "order.emptyBody":
+    "Of geen klep is nog gemeet nie, of elke klep het reeds die regte stelplaatjie in.",
+  "order.sizes": { one: "{count} grootte", other: "{count} groottes" },
+  "order.total": {
+    one: "{count} stelplaatjie in {sizes}.",
+    other: "{count} stelplaatjies in {sizes}.",
+  },
+  "order.exportCsv": "Voer hierdie diens uit (CSV)",
+  "order.backupJson": "Rugsteun alles (JSON)",
+  "order.print": "Druk",
+  "order.ktmNote":
+    "KTM maak net 0,05 mm-stappe van 2,30 mm af op. Waar ’n grootte geen KTM-nommer wys nie, is die Harley-Davidson-stelplaatjie dieselfde onderdeel vir hierdie werk — en gewoonlik goedkoper.",
+
+  // ---------------------------------------------------------------------
+  // The summary
+  // ---------------------------------------------------------------------
+  "summary.heading": "Opsomming",
+  "summary.empty":
+    "Meet ’n paar kleppe op die Blad en hulle sal hier verskyn.",
+
+  "summary.colValve": "Klep",
+  "summary.colShim": "Plaatjie",
+  "summary.colGap": "Speling",
+  "summary.colPredicted": "Voorspel",
+
+  "summary.foundHeading": "Stelplaatjies en spelings gevind",
+  "summary.foundCaption":
+    "Wat uit die enjin gekom het, en die speling waarmee dit geloop het.",
+  "summary.tight": "nou",
+  "summary.loose": "wyd",
+
+  "summary.setHeading": "Stelplaatjies en spelings gestel",
+  "summary.setCaptionConfirmed":
+    "Wat ingegaan het, en die speling wat jy daarna werklik gemeet het.",
+  "summary.setCaptionPredicted":
+    "Wat ingegaan het, en die speling wat die wiskunde voorspel. Teken die bevestigde spelings op die Blad aan sodra alles weer saam is.",
+  "summary.leftAlone": "onaangeraak",
+  "summary.confirmed": "bevestig",
+  "summary.predicted": "voorspel",
+  "summary.legend":
+    "“Onaangeraak” beteken die speling was binne toleransie en die stelplaatjie is nooit gesteur nie, so die speling wat gewys word is dié waarmee dit reeds geloop het. ↺ beteken die stelplaatjie het uitgekom maar dieselfde grootte het teruggegaan. Syfers tussen hakies is voorspel, nie gemeet nie.",
+
+  "summary.driftHeading": "Bevestig teenoor voorspel",
+  "summary.driftBody":
+    "Normaal — die stelplaatjie se diktetoleransie en hoe die stoter sit, skuif albei daaraan. Dit word aangeteken sodat die volgende diens begin by wat die enjin werklik gedoen het, nie by wat die rekenkunde gesê het nie.",
+
+  // ---------------------------------------------------------------------
+  // History
+  // ---------------------------------------------------------------------
+  "history.heading": "Geskiedenis",
+  "history.forBike": "Dienste vir {name}",
+  "history.thisBike": "hierdie fiets",
+  "history.allServices": "Elke diens wat jy op hierdie toestel gestoor het",
+
+  "history.driftHeading": "Stelplaatjie-dikte oor tyd",
+  "history.perValveHeading": "Stelplaatjie-dikte, klep vir klep",
+  "history.servicesHeading": "Dienste",
+
+  "history.open": "oop",
+  "history.importedChip": "ingevoer",
+  "history.nextService": "Volgende diens",
+  "history.delete": "Skrap",
+  "history.deleteConfirm":
+    "Skrap die diens by {odometer}? Dit kan nie ongedaan gemaak word nie.",
+
+  "history.accountHeading": "Rekening",
+  "history.backupHeading": "Rugsteun",
+  "history.backupBody":
+    "Jou dienste is op hierdie toestel en op die bediener onder jou rekening. ’n Uitvoer is die kopie wat van nie een van die twee afhang nie — hou een êrens veilig.",
+  "history.exportAll": "Voer alles uit",
+  "history.importBackup": "Voer rugsteun in",
+  "history.imported": "Ingevoer — {added} nuut, {merged} bygewerk.",
+
+  // ---------------------------------------------------------------------
   // Signing in
   // ---------------------------------------------------------------------
   "signIn.blurb":

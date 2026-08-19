@@ -1,6 +1,7 @@
 "use client";
 
 import { modelLabel } from "@/lib/models";
+import { useT } from "./LocaleProvider";
 import { useRecords } from "./RecordsProvider";
 
 /**
@@ -13,6 +14,7 @@ import { useRecords } from "./RecordsProvider";
  * instead of pushing the content below it down the screen.
  */
 export function BikeTabs() {
+  const t = useT();
   const { bikes, bike, setActiveBikeId } = useRecords();
 
   if (bikes.length < 2) return null;
@@ -23,7 +25,11 @@ export function BikeTabs() {
       // Bleeds to the screen edges so the strip reads as scrollable rather
       // than clipped, and the last tab can sit flush.
     >
-      <div role="tablist" aria-label="Bikes" className="flex gap-1 border-b border-line">
+      <div
+        role="tablist"
+        aria-label={t("bikeTabs.label")}
+        className="flex gap-1 border-b border-line"
+      >
         {bikes.map((b) => {
           const active = b.id === bike.id;
           return (
@@ -39,7 +45,7 @@ export function BikeTabs() {
                   : "border-transparent text-faint hover:text-muted"
               }`}
             >
-              {b.name.trim() || "Unnamed bike"}
+              {b.name.trim() || t("bikeTabs.unnamed")}
               {modelLabel(b.modelId, b.year) && (
                 // Real space, not a margin — a margin looks right but copies
                 // and reads aloud as "Old Beast950 Adventure".

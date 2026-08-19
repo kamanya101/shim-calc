@@ -225,6 +225,90 @@ const de = {
   "time.days": { one: "vor {count} Tag", other: "vor {count} Tagen" },
 
   // ---------------------------------------------------------------------
+  // Switching between bikes
+  // ---------------------------------------------------------------------
+  "bikeTabs.label": "Motorräder",
+  "bikeTabs.unnamed": "Unbenanntes Motorrad",
+
+  // ---------------------------------------------------------------------
+  // Shims to order
+  // ---------------------------------------------------------------------
+  "order.heading": "Zu bestellende Plättchen",
+  "order.emptyTitle": "Nichts zu bestellen",
+  "order.emptyBody":
+    "Entweder ist noch kein Ventil gemessen, oder in jedem Ventil sitzt bereits das richtige Plättchen.",
+  "order.sizes": { one: "{count} Größe", other: "{count} Größen" },
+  "order.total": {
+    one: "{count} Plättchen in {sizes}.",
+    other: "{count} Plättchen in {sizes}.",
+  },
+  "order.exportCsv": "Diesen Service exportieren (CSV)",
+  "order.backupJson": "Alles sichern (JSON)",
+  "order.print": "Drucken",
+  "order.ktmNote":
+    "KTM fertigt ab 2,30 mm nur 0,05-mm-Schritte. Wo zu einer Größe keine KTM-Nummer steht, ist das Harley-Davidson-Plättchen für diesen Zweck dasselbe Teil — und meist günstiger.",
+
+  // ---------------------------------------------------------------------
+  // The summary
+  // ---------------------------------------------------------------------
+  "summary.heading": "Übersicht",
+  "summary.empty":
+    "Miss ein paar Ventile auf dem Blatt, dann erscheinen sie hier.",
+
+  "summary.colValve": "Ventil",
+  "summary.colShim": "Plättchen",
+  "summary.colGap": "Spiel",
+  "summary.colPredicted": "Vorhergesagt",
+
+  "summary.foundHeading": "Vorgefundene Plättchen und Spiele",
+  "summary.foundCaption":
+    "Was aus dem Motor kam, und mit welchem Spiel er lief.",
+  "summary.tight": "eng",
+  "summary.loose": "weit",
+
+  "summary.setHeading": "Eingestellte Plättchen und Spiele",
+  "summary.setCaptionConfirmed":
+    "Was eingebaut wurde, und das Spiel, das du danach tatsächlich gemessen hast.",
+  "summary.setCaptionPredicted":
+    "Was eingebaut wurde, und das Spiel, das die Rechnung vorhersagt. Trag die bestätigten Spiele auf dem Blatt ein, sobald alles zusammen ist.",
+  "summary.leftAlone": "unangetastet",
+  "summary.confirmed": "bestätigt",
+  "summary.predicted": "vorhergesagt",
+  "summary.legend":
+    "„Unangetastet“ heißt, das Spiel lag in der Toleranz und das Plättchen wurde nie angerührt — das gezeigte Spiel ist also das, mit dem der Motor ohnehin lief. ↺ heißt, das Plättchen kam heraus, aber dieselbe Größe ging wieder hinein. Werte in Klammern sind vorhergesagt, nicht gemessen.",
+
+  "summary.driftHeading": "Bestätigt gegenüber vorhergesagt",
+  "summary.driftBody":
+    "Normal — die Fertigungstoleranz des Plättchens und wie sich der Tassenstößel setzt, verschieben beides. Es wird festgehalten, damit der nächste Service von dem ausgeht, was der Motor tatsächlich gemacht hat, und nicht von dem, was die Rechnung sagte.",
+
+  // ---------------------------------------------------------------------
+  // History
+  // ---------------------------------------------------------------------
+  "history.heading": "Verlauf",
+  "history.forBike": "Services für {name}",
+  "history.thisBike": "dieses Motorrad",
+  "history.allServices": "Jeder Service, den du auf diesem Gerät gespeichert hast",
+
+  "history.driftHeading": "Plättchenstärke im Zeitverlauf",
+  "history.perValveHeading": "Plättchenstärke, Ventil für Ventil",
+  "history.servicesHeading": "Services",
+
+  "history.open": "offen",
+  "history.importedChip": "importiert",
+  "history.nextService": "Nächster Service",
+  "history.delete": "Löschen",
+  "history.deleteConfirm":
+    "Den Service bei {odometer} löschen? Das lässt sich nicht rückgängig machen.",
+
+  "history.accountHeading": "Konto",
+  "history.backupHeading": "Sicherung",
+  "history.backupBody":
+    "Deine Services liegen auf diesem Gerät und auf dem Server unter deinem Konto. Ein Export ist die Kopie, die von beidem unabhängig ist — bewahr eine an einem sicheren Ort auf.",
+  "history.exportAll": "Alles exportieren",
+  "history.importBackup": "Sicherung importieren",
+  "history.imported": "Importiert — {added} neu, {merged} aktualisiert.",
+
+  // ---------------------------------------------------------------------
   // Signing in
   // ---------------------------------------------------------------------
   "signIn.blurb":

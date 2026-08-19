@@ -4,14 +4,16 @@ import { formatDate, formatOdometer, mm } from "@/lib/format";
 import { modelLabel } from "@/lib/models";
 import { buildShoppingList, recordToCsv, suggestFilename } from "@/lib/report";
 import { downloadFile } from "@/lib/storage";
+import { useT } from "./LocaleProvider";
 import { useRecords } from "./RecordsProvider";
 import { Button, Card, EmptyState, PageHeader } from "./ui";
 
 export function OrderList() {
+  const t = useT();
   const { ready, engine, bike, active, aim, exportBundle } = useRecords();
 
   if (!ready) {
-    return <p className="p-4 text-sm text-faint">Loading…</p>;
+    return <p className="p-4 text-sm text-faint">{t("common.loading")}</p>;
   }
 
   const lines = buildShoppingList(engine, active, aim);
@@ -20,7 +22,7 @@ export function OrderList() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-5">
       <PageHeader
-        title="Shims to order"
+        title={t("order.heading")}
         subtitle={[
           modelLabel(bike.modelId, bike.year)
             ? `${bike.name} · ${modelLabel(bike.modelId, bike.year)}`
@@ -33,9 +35,8 @@ export function OrderList() {
       />
 
       {lines.length === 0 ? (
-        <EmptyState title="Nothing to order">
-          Either no valves are measured yet, or every valve already has the
-          right shim in it.
+        <EmptyState title={t("order.emptyTitle")}>
+          {t("order.emptyBody")}
         </EmptyState>
       ) : (
         <>
@@ -56,7 +57,7 @@ export function OrderList() {
                   </div>
 
                   <p className="mt-1 text-xs text-muted">
-                    {line.valves.join(", ")}
+                    {line.valves.map((id) => t(`valve.${id}`)).join(", ")}
                   </p>
 
                   <dl className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
@@ -70,7 +71,7 @@ export function OrderList() {
                               : "italic text-faint"
                           }
                         >
-                          {part.part ?? "no size made"}
+                          {part.part ?? t("valve.noSizeMade")}
                         </dd>
                       </div>
                     ))}
@@ -80,9 +81,17 @@ export function OrderList() {
             </ul>
           </Card>
 
+          {/*
+            Two counted things in one sentence, and only one of them can drive
+            the plural form. So the sizes are built as their own counted noun
+            phrase and handed to the sentence whole — the translator writes
+            both, and a language that needs three forms for "size" gets them.
+          */}
           <p className="mt-3 text-sm text-muted">
-            {totalShims} shim{totalShims === 1 ? "" : "s"} in{" "}
-            {lines.length} size{lines.length === 1 ? "" : "s"}.
+            {t("order.total", {
+              count: totalShims,
+              sizes: t("order.sizes", { count: lines.length }),
+            })}
           </p>
         </>
       )}
@@ -97,7 +106,7 @@ export function OrderList() {
             )
           }
         >
-          Export this service (CSV)
+          {t("order.exportCsv")}
         </Button>
         <Button
           onClick={() =>
@@ -108,17 +117,15 @@ export function OrderList() {
             )
           }
         >
-          Back up everything (JSON)
+          {t("order.backupJson")}
         </Button>
         <Button variant="ghost" onClick={() => window.print()}>
-          Print
+          {t("order.print")}
         </Button>
       </div>
 
       <p className="no-print mt-3 text-[11px] leading-relaxed text-faint">
-        KTM only make 0.05 mm steps from 2.30 mm up. Where a size shows no KTM
-        number, the Harley-Davidson shim is the same part for this job — and
-        usually cheaper.
+        {t("order.ktmNote")}
       </p>
     </div>
   );

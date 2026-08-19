@@ -4,6 +4,7 @@ import { formatDate, formatOdometer, mm, signedMm } from "@/lib/format";
 import { modelLabel } from "@/lib/models";
 import { buildSummary, recordToCsv, suggestFilename, type SummaryRow } from "@/lib/report";
 import { downloadFile } from "@/lib/storage";
+import { useT } from "./LocaleProvider";
 import { useRecords } from "./RecordsProvider";
 import { Button, Card, Chip, PageHeader } from "./ui";
 
@@ -12,9 +13,10 @@ import { Button, Card, Chip, PageHeader } from "./ui";
  * the engine when you opened it, and what was in it when you closed it.
  */
 export function Summary() {
+  const t = useT();
   const { ready, engine, bike, active, aim } = useRecords();
 
-  if (!ready) return <p className="p-4 text-sm text-faint">Loading…</p>;
+  if (!ready) return <p className="p-4 text-sm text-faint">{t("common.loading")}</p>;
 
   const rows = buildSummary(engine, active, aim);
   const anyFound = rows.some((r) => r.measured);
@@ -26,7 +28,7 @@ export function Summary() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-5">
       <PageHeader
-        title="Summary"
+        title={t("summary.heading")}
         subtitle={[
           modelLabel(bike.modelId, bike.year)
             ? `${bike.name} · ${modelLabel(bike.modelId, bike.year)}`
@@ -43,29 +45,38 @@ export function Summary() {
 
       {!anyFound ? (
         <p className="rounded-xl border border-dashed border-line px-5 py-10 text-center text-sm text-faint">
-          Measure some valves on the Sheet and they&apos;ll appear here.
+          {t("summary.empty")}
         </p>
       ) : (
         <>
           <Section
-            title="Shims and tolerances found"
-            caption="What came out of the engine, and the gap it was running."
+            title={t("summary.foundHeading")}
+            caption={t("summary.foundCaption")}
           >
             <Table
-              head={["Valve", "Shim", "Gap", ""]}
+              head={[
+                t("summary.colValve"),
+                t("summary.colShim"),
+                t("summary.colGap"),
+                "",
+              ]}
               rows={rows.map((row) => ({
                 key: row.position.id,
                 cells: [
-                  row.position.label,
+                  t(`valve.${row.position.id}`),
                   mm(row.foundShim),
                   mm(row.foundClearance),
                 ],
                 chip:
                   row.foundInSpec === undefined ? null : row.foundInSpec ? (
-                    <Chip tone="ok">in spec</Chip>
+                    <Chip tone="ok">{t("valve.inSpec")}</Chip>
                   ) : (
                     <Chip tone="bad">
-                      {row.foundClearance! < row.range.min ? "tight" : "loose"}
+                      {t(
+                        row.foundClearance! < row.range.min
+                          ? "summary.tight"
+                          : "summary.loose",
+                      )}
                     </Chip>
                   ),
               }))}
@@ -73,19 +84,24 @@ export function Summary() {
           </Section>
 
           <Section
-            title="Shims and tolerances set"
+            title={t("summary.setHeading")}
             caption={
               anyConfirmed
-                ? "What went in, and the gap you actually measured afterwards."
-                : "What went in, and the gap the maths predicts. Record the confirmed gaps on the Sheet once it's together."
+                ? t("summary.setCaptionConfirmed")
+                : t("summary.setCaptionPredicted")
             }
           >
             <Table
-              head={["Valve", "Shim", anyConfirmed ? "Gap" : "Predicted", ""]}
+              head={[
+                t("summary.colValve"),
+                t("summary.colShim"),
+                anyConfirmed ? t("summary.colGap") : t("summary.colPredicted"),
+                "",
+              ]}
               rows={rows.map((row) => ({
                 key: row.position.id,
                 cells: [
-                  row.position.label,
+                  t(`valve.${row.position.id}`),
                   row.leftAlone
                     ? "—"
                     : mm(row.setShim) + (row.noChange ? " ↺" : ""),
@@ -98,35 +114,30 @@ export function Summary() {
                         : "—",
                 ],
                 chip: row.leftAlone ? (
-                  <Chip tone="ok">left alone</Chip>
+                  <Chip tone="ok">{t("summary.leftAlone")}</Chip>
                 ) : row.confirmedClearance !== undefined ? (
                   row.confirmedInSpec ? (
-                    <Chip tone="ok">confirmed</Chip>
+                    <Chip tone="ok">{t("summary.confirmed")}</Chip>
                   ) : (
-                    <Chip tone="bad">out of spec</Chip>
+                    <Chip tone="bad">{t("valve.outOfSpec")}</Chip>
                   )
                 ) : row.predictedClearance !== undefined ? (
-                  <Chip tone="neutral">predicted</Chip>
+                  <Chip tone="neutral">{t("summary.predicted")}</Chip>
                 ) : null,
               }))}
             />
             <p className="mt-2 text-[11px] text-faint">
-              &ldquo;Left alone&rdquo; means the gap was in tolerance and the
-              shim was never disturbed, so the gap shown is the one it was
-              already running. ↺ means the shim came out but the same size went
-              back in. Figures in brackets are predicted, not measured.
+              {t("summary.legend")}
             </p>
           </Section>
 
           {drifted.length > 0 && (
             <Card className="mt-5 p-3">
               <h3 className="text-xs font-bold uppercase tracking-wide text-muted">
-                Confirmed vs predicted
+                {t("summary.driftHeading")}
               </h3>
               <p className="mt-1 text-xs leading-relaxed text-faint">
-                Normal — shim thickness tolerance and how the bucket seats both
-                move it. It&apos;s recorded so the next service starts from what the
-                engine actually did, not what the arithmetic said.
+                {t("summary.driftBody")}
               </p>
               <ul className="mt-2 space-y-1">
                 {drifted.map((row) => (
@@ -134,7 +145,9 @@ export function Summary() {
                     key={row.position.id}
                     className="flex items-baseline justify-between gap-3 text-xs"
                   >
-                    <span className="text-muted">{row.position.label}</span>
+                    <span className="text-muted">
+                      {t(`valve.${row.position.id}`)}
+                    </span>
                     <span className="font-mono font-semibold tabular-nums">
                       {signedMm(row.confirmedDelta)}
                     </span>
@@ -154,10 +167,10 @@ export function Summary() {
                 )
               }
             >
-              Export this service (CSV)
+              {t("order.exportCsv")}
             </Button>
             <Button variant="ghost" onClick={() => window.print()}>
-              Print
+              {t("order.print")}
             </Button>
           </div>
         </>

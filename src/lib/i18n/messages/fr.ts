@@ -218,6 +218,90 @@ const fr = {
   "time.days": { one: "il y a {count} jour", other: "il y a {count} jours" },
 
   // ---------------------------------------------------------------------
+  // Switching between bikes
+  // ---------------------------------------------------------------------
+  "bikeTabs.label": "Motos",
+  "bikeTabs.unnamed": "Moto sans nom",
+
+  // ---------------------------------------------------------------------
+  // Shims to order
+  // ---------------------------------------------------------------------
+  "order.heading": "Pastilles à commander",
+  "order.emptyTitle": "Rien à commander",
+  "order.emptyBody":
+    "Soit aucune soupape n’est encore mesurée, soit chacune a déjà la bonne pastille.",
+  "order.sizes": { one: "{count} taille", other: "{count} tailles" },
+  "order.total": {
+    one: "{count} pastille en {sizes}.",
+    other: "{count} pastilles en {sizes}.",
+  },
+  "order.exportCsv": "Exporter cet entretien (CSV)",
+  "order.backupJson": "Tout sauvegarder (JSON)",
+  "order.print": "Imprimer",
+  "order.ktmNote":
+    "KTM ne fabrique que des pas de 0,05 mm à partir de 2,30 mm. Là où une taille n’a pas de référence KTM, la pastille Harley-Davidson est la même pièce pour cet usage — et souvent moins chère.",
+
+  // ---------------------------------------------------------------------
+  // The summary
+  // ---------------------------------------------------------------------
+  "summary.heading": "Récapitulatif",
+  "summary.empty":
+    "Mesure quelques soupapes sur la Fiche et elles apparaîtront ici.",
+
+  "summary.colValve": "Soupape",
+  "summary.colShim": "Pastille",
+  "summary.colGap": "Jeu",
+  "summary.colPredicted": "Prévu",
+
+  "summary.foundHeading": "Pastilles et jeux relevés",
+  "summary.foundCaption":
+    "Ce qui est sorti du moteur, et le jeu avec lequel il tournait.",
+  "summary.tight": "serré",
+  "summary.loose": "large",
+
+  "summary.setHeading": "Pastilles et jeux réglés",
+  "summary.setCaptionConfirmed":
+    "Ce qui est monté, et le jeu que tu as réellement mesuré ensuite.",
+  "summary.setCaptionPredicted":
+    "Ce qui est monté, et le jeu que le calcul prévoit. Note les jeux confirmés sur la Fiche une fois le moteur remonté.",
+  "summary.leftAlone": "non touchée",
+  "summary.confirmed": "confirmé",
+  "summary.predicted": "prévu",
+  "summary.legend":
+    "« Non touchée » veut dire que le jeu était dans la tolérance et que la pastille n’a jamais été dérangée : le jeu affiché est donc celui avec lequel le moteur tournait déjà. ↺ veut dire que la pastille est sortie mais que la même taille est remontée. Les chiffres entre parenthèses sont prévus, pas mesurés.",
+
+  "summary.driftHeading": "Confirmé par rapport au prévu",
+  "summary.driftBody":
+    "Normal — la tolérance d’épaisseur de la pastille et la façon dont le poussoir se met en place jouent toutes deux. C’est noté pour que l’entretien suivant parte de ce que le moteur a réellement fait, et non de ce que disait le calcul.",
+
+  // ---------------------------------------------------------------------
+  // History
+  // ---------------------------------------------------------------------
+  "history.heading": "Historique",
+  "history.forBike": "Entretiens de {name}",
+  "history.thisBike": "cette moto",
+  "history.allServices": "Tous les entretiens enregistrés sur cet appareil",
+
+  "history.driftHeading": "Épaisseur des pastilles dans le temps",
+  "history.perValveHeading": "Épaisseur des pastilles, soupape par soupape",
+  "history.servicesHeading": "Entretiens",
+
+  "history.open": "ouvert",
+  "history.importedChip": "importé",
+  "history.nextService": "Entretien suivant",
+  "history.delete": "Supprimer",
+  "history.deleteConfirm":
+    "Supprimer l’entretien à {odometer} ? C’est irréversible.",
+
+  "history.accountHeading": "Compte",
+  "history.backupHeading": "Sauvegarde",
+  "history.backupBody":
+    "Tes entretiens sont sur cet appareil et sur le serveur, sous ton compte. Un export est la copie qui ne dépend ni de l’un ni de l’autre — garde-en une en lieu sûr.",
+  "history.exportAll": "Tout exporter",
+  "history.importBackup": "Importer une sauvegarde",
+  "history.imported": "Importé — {added} nouveaux, {merged} mis à jour.",
+
+  // ---------------------------------------------------------------------
   // Signing in
   // ---------------------------------------------------------------------
   "signIn.blurb":

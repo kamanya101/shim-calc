@@ -19,7 +19,15 @@ export const DEFAULT_AIM_SETTINGS: AimSettings = { ...DEFAULT_AIM };
 export type ShoppingLine = {
   um: Microns;
   quantity: number;
-  /** Which valves want this size, by label. */
+  /**
+   * Which valves want this size, by permanent id rather than by name.
+   *
+   * Ids because the screen showing this list has to name them in the rider's
+   * own language, and only a component can do that. The CSV export resolves
+   * them back to English labels, which is right: the rest of that file — its
+   * column headings included — is English too, and a spreadsheet somebody
+   * mails to a workshop should read the same wherever it lands.
+   */
   valves: string[];
   parts: { brand: string; part: string | null }[];
 };
@@ -50,12 +58,12 @@ export function buildShoppingList(
     const existing = bySize.get(result.chosenShim);
     if (existing) {
       existing.quantity += 1;
-      existing.valves.push(position.label);
+      existing.valves.push(position.id);
     } else {
       bySize.set(result.chosenShim, {
         um: result.chosenShim,
         quantity: 1,
-        valves: [position.label],
+        valves: [position.id],
         parts: partsForSize(engine.catalogues, result.chosenShim),
       });
     }
@@ -267,7 +275,10 @@ export function recordToCsv(
       rows.push([
         mmFixed(line.um),
         line.quantity,
-        line.valves.join("; "),
+        // Back to English names for the file — see ShoppingLine.valves.
+        line.valves
+          .map((id) => engine.positions.find((p) => p.id === id)?.label ?? id)
+          .join("; "),
         line.parts
           .map((p) => `${p.brand}: ${p.part ?? "not available"}`)
           .join("; "),

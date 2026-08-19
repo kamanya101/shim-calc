@@ -239,6 +239,97 @@ const en = {
   "time.days": { one: "{count} day ago", other: "{count} days ago" },
 
   // ---------------------------------------------------------------------
+  // Switching between bikes
+  // ---------------------------------------------------------------------
+  "bikeTabs.label": "Bikes",
+  "bikeTabs.unnamed": "Unnamed bike",
+
+  // ---------------------------------------------------------------------
+  // Shims to order
+  // ---------------------------------------------------------------------
+  "order.heading": "Shims to order",
+  "order.emptyTitle": "Nothing to order",
+  "order.emptyBody":
+    "Either no valves are measured yet, or every valve already has the right shim in it.",
+  // Counted noun phrase, built on its own so it can be dropped into the
+  // sentence below — two counts cannot both drive one plural form.
+  "order.sizes": { one: "{count} size", other: "{count} sizes" },
+  "order.total": {
+    one: "{count} shim in {sizes}.",
+    other: "{count} shims in {sizes}.",
+  },
+  "order.exportCsv": "Export this service (CSV)",
+  "order.backupJson": "Back up everything (JSON)",
+  "order.print": "Print",
+  "order.ktmNote":
+    "KTM only make 0.05 mm steps from 2.30 mm up. Where a size shows no KTM number, the Harley-Davidson shim is the same part for this job — and usually cheaper.",
+
+  // ---------------------------------------------------------------------
+  // The summary
+  //
+  // The service as you would want to read it back in three years. Column
+  // headings are single words on purpose — the table is read sideways on a
+  // phone, and "Valve" has to survive at 12px next to a number.
+  // ---------------------------------------------------------------------
+  "summary.heading": "Summary",
+  "summary.empty": "Measure some valves on the Sheet and they’ll appear here.",
+
+  "summary.colValve": "Valve",
+  "summary.colShim": "Shim",
+  "summary.colGap": "Gap",
+  "summary.colPredicted": "Predicted",
+
+  "summary.foundHeading": "Shims and tolerances found",
+  "summary.foundCaption":
+    "What came out of the engine, and the gap it was running.",
+  "summary.tight": "tight",
+  "summary.loose": "loose",
+
+  "summary.setHeading": "Shims and tolerances set",
+  "summary.setCaptionConfirmed":
+    "What went in, and the gap you actually measured afterwards.",
+  "summary.setCaptionPredicted":
+    "What went in, and the gap the maths predicts. Record the confirmed gaps on the Sheet once it’s together.",
+  "summary.leftAlone": "left alone",
+  "summary.confirmed": "confirmed",
+  "summary.predicted": "predicted",
+  "summary.legend":
+    "“Left alone” means the gap was in tolerance and the shim was never disturbed, so the gap shown is the one it was already running. ↺ means the shim came out but the same size went back in. Figures in brackets are predicted, not measured.",
+
+  "summary.driftHeading": "Confirmed vs predicted",
+  "summary.driftBody":
+    "Normal — shim thickness tolerance and how the bucket seats both move it. It’s recorded so the next service starts from what the engine actually did, not what the arithmetic said.",
+
+  // ---------------------------------------------------------------------
+  // History
+  // ---------------------------------------------------------------------
+  "history.heading": "History",
+  "history.forBike": "Services for {name}",
+  "history.thisBike": "this bike",
+  "history.allServices": "Every service you’ve saved on this device",
+
+  "history.driftHeading": "Shim thickness over time",
+  "history.perValveHeading": "Shim thickness, valve by valve",
+  "history.servicesHeading": "Services",
+
+  "history.open": "open",
+  "history.importedChip": "imported",
+  "history.nextService": "Next service",
+  "history.delete": "Delete",
+  "history.deleteConfirm":
+    "Delete the service at {odometer}? This can’t be undone.",
+
+  "history.accountHeading": "Account",
+  "history.backupHeading": "Backup",
+  "history.backupBody":
+    "Your services are on this device and on the server under your account. An export is the copy that depends on neither — keep one somewhere safe.",
+  "history.exportAll": "Export all",
+  "history.importBackup": "Import backup",
+  // Two counts again, and neither should drive a plural form here — both are
+  // read as bare tallies rather than as counted nouns.
+  "history.imported": "Imported — {added} new, {merged} updated.",
+
+  // ---------------------------------------------------------------------
   // Signing in
   //
   // The one screen a rider meets before the app has any idea who they are, so
