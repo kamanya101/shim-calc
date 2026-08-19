@@ -687,6 +687,21 @@ function ServiceIntervals({
     mineKm: mine.kmBetween[key] ?? null,
   })).filter((row) => row.pool?.kmBetween != null || row.mineKm != null);
 
+  /*
+   * One scale for the whole panel, not one per row.
+   *
+   * Scaled per row, every bar reaches the end of its track — a row holding a
+   * single figure has nothing to be shorter than — so a chain at 28,000 km and
+   * an oil change at 6,000 draw identically and the picture says nothing at
+   * all. Against a shared maximum the bars carry the reading a rider actually
+   * wants at a glance: which of these come round often, and which almost never.
+   */
+  const peak =
+    Math.max(
+      ...rows.map((row) => Math.max(row.mineKm ?? 0, row.pool?.kmBetween ?? 0)),
+      1,
+    );
+
   if (!rows.length) {
     return (
       <div className="mt-6">
@@ -726,7 +741,6 @@ function ServiceIntervals({
       <Card className="divide-y divide-line p-0">
         {rows.map(({ key, pool, mineKm }) => {
           const poolKm = pool?.kmBetween ?? null;
-          const peak = Math.max(mineKm ?? 0, poolKm ?? 0) || 1;
           return (
             <div key={key} className="px-2.5 py-2">
               <div className="flex items-baseline justify-between gap-2">
