@@ -34,7 +34,21 @@ import { VinGate } from "./VinGate";
  * top end open. Shading by count is what puts that back.
  */
 
-const DATA = "#ff9a4d";
+/*
+ * Two colours, because the two rows are two different claims.
+ *
+ * The rider's own shims stay the app's orange — it is their bike, in the colour
+ * everything else of theirs is drawn in. The pool takes cyan, which sits
+ * opposite orange on the wheel and so separates from it further than any other
+ * hue could; against this near-black both read at full strength. It is also a
+ * pairing that survives red-green colour blindness, which orange against a
+ * second warm colour would not.
+ *
+ * The point is that a rider glancing at the picture must never have to work out
+ * which row is theirs.
+ */
+const MINE = "#ff9a4d";
+const POOL = "#3ad4e0";
 const W = 260;
 const PAD = 8;
 /** 25 microns, the real step between shims, so the scale never implies sizes
@@ -429,7 +443,7 @@ function Legend() {
           <span
             key={o}
             className="flex-1"
-            style={{ backgroundColor: DATA, opacity: o }}
+            style={{ backgroundColor: POOL, opacity: o }}
           />
         ))}
       </span>
@@ -509,7 +523,7 @@ function ComparePanel({
             width={Math.max(sx(mineHi) - sx(mineLo) + bandW, bandW)}
             height={12}
             rx={2}
-            fill={DATA}
+            fill={MINE}
             opacity={0.32}
           />
           {mine.map((v, i) => (
@@ -520,7 +534,7 @@ function ComparePanel({
               width={bandW}
               height={12}
               rx={1}
-              fill={DATA}
+              fill={MINE}
             />
           ))}
         </>
@@ -541,7 +555,7 @@ function ComparePanel({
           y={50}
           width={bandW}
           height={18}
-          fill={DATA}
+          fill={POOL}
           opacity={0.15 + 0.85 * (n / peak)}
         />
       ))}
