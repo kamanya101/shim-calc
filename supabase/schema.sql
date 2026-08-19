@@ -582,8 +582,15 @@ declare
   min_bikes constant integer := 3;
   result jsonb;
 begin
-  if not exists (select 1 from public.contributors where user_id = auth.uid()) then
-    raise exception 'no contributor record for this account';
+  -- Signed in is the whole test. This used to require a row in `contributors`,
+  -- which stopped being written the day pool keys moved onto the bike — so
+  -- every account created since has been refused its own comparison, while
+  -- accounts predating the change still worked off a leftover row. Reading the
+  -- pool is not a privilege that table ever granted: contributing is not a
+  -- choice, so there is no permission here to look up. Same guard as
+  -- contribute_readings, for the same reason.
+  if auth.uid() is null then
+    raise exception 'must be signed in to read the pool';
   end if;
 
   with filtered as (
