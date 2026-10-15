@@ -121,7 +121,8 @@ const af = {
   "valve.r-ex-r": "Uitlaat agter regs",
 
   "valve.clearanceLabel": "Speling",
-  "valve.shimLabel": "Stelplaatjie in",
+  "valve.shimLabel": "Plaatjie gevind",
+  "valve.shimFittedLabel": "Plaatjie ingesit",
   "valve.confirmedLabel": "Bevestigde speling",
 
   "valve.clearanceBounds":
@@ -134,6 +135,8 @@ const af = {
     "Watter voelermaat het jy tussen die nok en die stoter ingekry? Sit jou meting hier in millimeter in.",
   "valve.hintShim":
     "Watter stelplaatjie het jy onder hierdie stoter uitgehaal? Meet dit om seker te maak en sit die meting hier in millimeter in.",
+  "valve.hintShimFitted":
+    "Die stelplaatjie wat teruggaan. Dit begin op wat die program voorstel — tik daaroor as jy ’n ander een ingesit het, of maak die blokkie leeg om die keuse terug te gee aan die voorstel.",
   "valve.hintIdeal":
     "Dit is die stelplaatjie-dikte wat die speling presies op teiken sou sit vir hierdie klep. Dit word selde gemaak — die voorstel hieronder is die naaste werklike grootte.",
   "valve.hintNewClearance":

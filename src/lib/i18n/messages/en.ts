@@ -124,7 +124,12 @@ const en = {
   "valve.r-ex-r": "Rear right exhaust",
 
   "valve.clearanceLabel": "Clearance",
-  "valve.shimLabel": "Shim fitted",
+  // The pair that makes the record readable: what came out, what went in.
+  // The first of these used to read "Shim fitted", which was the shim already
+  // fitted when you started — true, but it reads as the one you are about to
+  // fit, and with both now on screen the two would have been indistinguishable.
+  "valve.shimLabel": "Shim found",
+  "valve.shimFittedLabel": "Shim fitted",
   "valve.confirmedLabel": "Confirmed gap",
 
   "valve.clearanceBounds":
@@ -138,6 +143,8 @@ const en = {
     "What feeler gauge did you manage to get in-between the cam and the bucket? Put your measurement in here in millimetres.",
   "valve.hintShim":
     "What is the shim that you pulled out from under this bucket? Measure it to make sure and insert the measurement here in millimetres.",
+  "valve.hintShimFitted":
+    "The shim going back in. It starts on whatever the app suggests — type over it if you fitted a different one, or empty the box to hand the choice back to the suggestion.",
   "valve.hintIdeal":
     "This is the shim size that would put the gap exactly on target for this valve. It is rarely a size anyone makes — the suggestion below is the nearest real one.",
   "valve.hintNewClearance":

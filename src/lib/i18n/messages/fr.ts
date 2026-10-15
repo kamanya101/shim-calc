@@ -110,7 +110,8 @@ const fr = {
   "valve.r-ex-r": "Échappement arrière droit",
 
   "valve.clearanceLabel": "Jeu",
-  "valve.shimLabel": "Pastille en place",
+  "valve.shimLabel": "Pastille trouvée",
+  "valve.shimFittedLabel": "Pastille montée",
   "valve.confirmedLabel": "Jeu confirmé",
 
   "valve.clearanceBounds":
@@ -123,6 +124,8 @@ const fr = {
     "Quelle cale d’épaisseur as-tu réussi à passer entre la came et le poussoir ? Note ta mesure ici, en millimètres.",
   "valve.hintShim":
     "Quelle pastille as-tu sortie de sous ce poussoir ? Mesure-la pour en être sûr et note le résultat ici, en millimètres.",
+  "valve.hintShimFitted":
+    "La pastille qui remonte. Elle part sur la suggestion de l’application — écris par-dessus si tu en as monté une autre, ou vide la case pour rendre le choix à la suggestion.",
   "valve.hintIdeal":
     "C’est l’épaisseur de pastille qui mettrait le jeu exactement sur la cible pour cette soupape. Elle n’existe presque jamais — la suggestion en dessous est la taille réelle la plus proche.",
   "valve.hintNewClearance":

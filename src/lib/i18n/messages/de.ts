@@ -115,7 +115,8 @@ const de = {
   "valve.r-ex-r": "Auslass hinten rechts",
 
   "valve.clearanceLabel": "Spiel",
-  "valve.shimLabel": "Verbautes Plättchen",
+  "valve.shimLabel": "Gefundenes Plättchen",
+  "valve.shimFittedLabel": "Eingebautes Plättchen",
   "valve.confirmedLabel": "Bestätigtes Spiel",
 
   "valve.clearanceBounds":
@@ -128,6 +129,8 @@ const de = {
     "Welche Fühlerlehre hast du zwischen Nocken und Tassenstößel bekommen? Trag dein Messergebnis hier in Millimetern ein.",
   "valve.hintShim":
     "Welches Einstellplättchen hast du unter diesem Tassenstößel herausgeholt? Miss es zur Sicherheit nach und trag das Ergebnis hier in Millimetern ein.",
+  "valve.hintShimFitted":
+    "Das Plättchen, das wieder hineinkommt. Es startet auf dem Vorschlag der App — überschreib ihn, wenn du ein anderes eingebaut hast, oder leer das Feld, um die Wahl wieder dem Vorschlag zu überlassen.",
   "valve.hintIdeal":
     "Das ist die Plättchenstärke, die das Spiel für dieses Ventil genau auf den Zielwert bringen würde. Sie wird selten gefertigt — der Vorschlag darunter ist die nächste echte Größe.",
   "valve.hintNewClearance":

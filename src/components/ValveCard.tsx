@@ -98,6 +98,13 @@ export function ValveCard({
 
       {showShimStep && (
         <div className="mt-3 border-t border-line pt-3">
+          {/*
+            The two shims side by side: what came out, and what is going back
+            in. They sit together because that pair is the record — read back
+            in three years, "2.84 out, 2.775 in" is the whole story of what was
+            done to this valve, and splitting them up the card made you hunt
+            for the second half.
+          */}
           <div className="flex items-start gap-3">
             <div className="w-28 shrink-0">
               <NumberField
@@ -109,6 +116,25 @@ export function ValveCard({
                 onChange={(um) => onChange({ ...reading, shim: um })}
               />
             </div>
+            {result.chosenShim !== undefined && (
+              <div className="w-28 shrink-0">
+                {/*
+                  Pre-filled with whatever the app is suggesting, and typeable
+                  over. A rider who fitted something out of their own drawer —
+                  a size no catalogue here lists — can record what actually
+                  went in rather than what was recommended. Emptying the box
+                  hands the choice back to the suggestion.
+                */}
+                <NumberField
+                  label={t("valve.shimFittedLabel")}
+                  hint={t("valve.hintShimFitted")}
+                  value={result.chosenShim}
+                  bounds={SHIM_BOUNDS}
+                  boundsMessage={t("valve.shimBounds")}
+                  onChange={setChosen}
+                />
+              </div>
+            )}
             {!result.hasShim && (
               <p className="min-w-0 flex-1 pt-5 text-[11px] leading-tight text-faint">
                 {t("valve.pullShim")}
