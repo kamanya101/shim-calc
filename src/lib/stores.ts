@@ -11,6 +11,7 @@ import {
   CONTRIBUTION_KEY,
   LOCALE_KEY,
   OWNER_KEY,
+  REAUTH_KEY,
   RECORDS_KEY,
   SYNC_KEY,
 } from "./storage";
@@ -33,6 +34,20 @@ export type Owner = {
 
 export type SyncState = {
   lastSyncedAt: string | null;
+  /**
+   * What the device held the last time a sync finished — see `localSignature`
+   * in sync.ts, which is bike and record ids against their updatedAt stamps.
+   *
+   * Stored rather than kept in memory so that signing out can tell, before it
+   * erases anything, whether this device is carrying work the server has
+   * never seen. A rider whose session had quietly expired could otherwise
+   * lose a service by doing the obvious thing, which is exactly what happened
+   * to the first real one this app ever recorded.
+   *
+   * Optional: a device that synced before this existed has no value here, and
+   * is treated as having unsaved work, which is the safe assumption.
+   */
+  lastSyncedSignature?: string;
 };
 
 /**
@@ -108,6 +123,18 @@ export const ownerStore = createLocalStore<Owner | null>(OWNER_KEY, null, (raw) 
   return value?.userId && value?.email ? value : null;
 });
 
+/**
+ * Whether the rider is part-way through signing in again on a device that
+ * still holds their records. Not the same as being signed out: the owner is
+ * still recorded, so the data stays and only this flag decides which screen
+ * is shown.
+ */
+export const reauthStore = createLocalStore<boolean>(
+  REAUTH_KEY,
+  false,
+  (raw) => (typeof raw === "boolean" ? raw : null),
+);
+
 export const syncStore = createLocalStore<SyncState>(SYNC_KEY, NO_SYNC, (raw) => {
   const value = raw as SyncState | null;
   return value && "lastSyncedAt" in value ? value : null;
@@ -150,6 +177,7 @@ export function clearLocalData(): void {
   // behind would key the next rider's readings to the last rider's token and
   // silently merge two people's bikes into one in the averages.
   contributionStore.set(NO_CONTRIBUTION);
+  reauthStore.set(false);
 }
 
 /**

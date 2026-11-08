@@ -373,6 +373,8 @@ const af = {
     "Teken een keer in en jou spelingsgeskiedenis volg jou na elke toestel wat jy gebruik. Daarna werk die program aflyn — stel dit tuis op en gebruik dit waar die fiets ook al staan.",
   "signIn.offline":
     "Jy is aflyn. Die eerste keer inteken kort ’n verbinding — alles daarna nie.",
+  "signIn.resuming":
+    "Jou aanmelding het verval, so sinkronisering het gestop. Niks is verlore nie — teken weer in as {email} en alles op hierdie toestel gaan weer op.",
   "signIn.email": "E-pos",
   "signIn.password": "Wagwoord",
   "signIn.passwordHint": "Ten minste 8 karakters.",
@@ -395,6 +397,11 @@ const af = {
   // ---------------------------------------------------------------------
   "account.syncsHere": "Jou dienste sinkroniseer na hierdie rekening.",
   "account.syncNow": "Sinkroniseer nou",
+  "account.signInAgain": "Teken weer in",
+  "account.signOutBlocked": "Nie uitgeteken nie — hierdie toestel het werk wat die bediener nie het nie",
+  "account.signOutBlockedDetail":
+    "Uitteken vee hierdie toestel se kopie uit, en van wat hier is het nooit jou rekening bereik nie. Voer dit eers uit, teken dan uit.",
+  "account.signOutAnyway": "Teken uit en gooi dit weg",
   "account.signOut": "Teken uit",
 
   "sync.syncing": "Sinkroniseer tans…",

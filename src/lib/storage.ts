@@ -42,6 +42,13 @@ export const OWNER_KEY = "shim-calc/owner/v1";
 export const SYNC_KEY = "shim-calc/sync/v1";
 
 /**
+ * Set while a signed-in rider is being asked to sign in again after their
+ * session expired. The owner record stays put — see beginReauth in auth.ts —
+ * so nothing is cleared and signing back in as the same person keeps it all.
+ */
+export const REAUTH_KEY = "shim-calc/reauth/v1";
+
+/**
  * Bookkeeping for the pool push — what went up last, so an unchanged pool is
  * never re-sent. The keys themselves belong to each bike now, not to the
  * rider; see `poolToken` on Bike. Account-scoped like everything above, so it

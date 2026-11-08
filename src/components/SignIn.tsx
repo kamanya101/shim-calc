@@ -22,7 +22,7 @@ type Mode = "in" | "up" | "forgot";
  * they make here is the same stored setting, so it is still in force once
  * they are through.
  */
-export function SignIn() {
+export function SignIn({ resuming }: { resuming?: string } = {}) {
   const t = useT();
   const [mode, setMode] = useState<Mode>("in");
   const [email, setEmail] = useState("");
@@ -88,7 +88,14 @@ export function SignIn() {
           <LanguageButton />
         </div>
       </div>
-      <p className="mt-1 mb-5 text-sm text-muted">{t("signIn.blurb")}</p>
+      {/*
+        A rider whose session ran out is not a new arrival, and telling them
+        what an account is for would be absurd. They are told what happened,
+        that nothing has been lost, and which address to use.
+      */}
+      <p className="mt-1 mb-5 text-sm text-muted">
+        {resuming ? t("signIn.resuming", { email: resuming }) : t("signIn.blurb")}
+      </p>
 
       {!online && (
         <Card className="mb-4 p-3">

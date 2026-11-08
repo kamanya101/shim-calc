@@ -407,6 +407,8 @@ const en = {
     "Sign in once and your clearance history follows you to every device you use. After this the app works offline — set it up at home, use it wherever the bike is.",
   "signIn.offline":
     "You’re offline. Signing in for the first time needs a connection — everything after it doesn’t.",
+  "signIn.resuming":
+    "Your sign-in ran out, so syncing stopped. Nothing has been lost — sign in again as {email} and everything on this device goes back up.",
   "signIn.email": "Email",
   "signIn.password": "Password",
   "signIn.passwordHint": "At least 8 characters.",
@@ -429,6 +431,14 @@ const en = {
   // ---------------------------------------------------------------------
   "account.syncsHere": "Your services sync to this account.",
   "account.syncNow": "Sync now",
+  "account.signInAgain": "Sign in again",
+  // Signing out erases this device's copy, so it refuses while the device
+  // holds work the server has never seen. Says what is at stake, not what
+  // the rider did wrong.
+  "account.signOutBlocked": "Not signed out — this device has work the server hasn’t got",
+  "account.signOutBlockedDetail":
+    "Signing out erases this device’s copy, and some of what is here has never reached your account. Export it first, then sign out.",
+  "account.signOutAnyway": "Sign out and discard it",
   "account.signOut": "Sign out",
 
   "sync.syncing": "Syncing…",

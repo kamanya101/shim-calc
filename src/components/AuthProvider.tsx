@@ -3,14 +3,15 @@
 import { createContext, useCallback, useContext } from "react";
 import { usePathname } from "next/navigation";
 import { RESET_PATH } from "@/lib/app";
-import { signOut as signOutUser } from "@/lib/auth";
+import { signOut as signOutUser, type SignOutResult } from "@/lib/auth";
 import { useHydrated, useLocalStore } from "@/lib/store";
-import { ownerStore, type Owner } from "@/lib/stores";
+import { ownerStore, reauthStore, type Owner } from "@/lib/stores";
 import { SignIn } from "./SignIn";
 
 type AuthContextValue = {
   owner: Owner;
-  signOut: () => Promise<void>;
+  /** Refuses, rather than erasing, while this device holds unsynced work. */
+  signOut: (options?: { force?: boolean }) => Promise<SignOutResult>;
 };
 
 const Ctx = createContext<AuthContextValue | null>(null);
@@ -37,11 +38,13 @@ export function useAuth(): AuthContextValue {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const hydrated = useHydrated();
   const owner = useLocalStore(ownerStore);
+  const reauth = useLocalStore(reauthStore);
   const pathname = usePathname();
 
-  const signOut = useCallback(async () => {
-    await signOutUser();
-  }, []);
+  const signOut = useCallback(
+    (options?: { force?: boolean }) => signOutUser(options),
+    [],
+  );
 
   // The prerendered HTML cannot know who is signed in — localStorage does not
   // exist yet. Painting the sign-in screen and then swapping it for the app a
@@ -61,6 +64,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   if (pathname === RESET_PATH) return <>{children}</>;
 
   if (!owner) return <SignIn />;
+
+  /*
+   * Signed in, but asked to prove it again because the session ran out.
+   *
+   * Shown instead of the app, and without clearing anything: the owner record
+   * is still here, so signing back in as the same rider keeps every bike and
+   * service, and signing in as somebody else clears them exactly as it always
+   * did. The alternative — routing this through a sign-out — is what used to
+   * erase work that had never reached the server.
+   */
+  if (reauth) return <SignIn resuming={owner.email} />;
 
   return <Ctx.Provider value={{ owner, signOut }}>{children}</Ctx.Provider>;
 }

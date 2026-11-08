@@ -1,7 +1,11 @@
 "use client";
 
+import { useState } from "react";
+import { beginReauth } from "@/lib/auth";
 import { timeAgo } from "@/lib/format";
+import { downloadFile } from "@/lib/storage";
 import { useAuth } from "./AuthProvider";
+import { useRecords } from "./RecordsProvider";
 import { useT, type Translate } from "./LocaleProvider";
 import { useSync, type SyncStatus } from "./SyncProvider";
 import { Button, Card, Chip, type Tone } from "./ui";
@@ -61,7 +65,20 @@ export function AccountCard() {
   const t = useT();
   const { owner, signOut } = useAuth();
   const { status, lastSyncedAt, syncNow } = useSync();
+  const { exportBundle } = useRecords();
   const state = describe(status, lastSyncedAt, t);
+  const [blocked, setBlocked] = useState(false);
+
+  /**
+   * Signing out erases this device's copy, so it is allowed to refuse. When
+   * it does, the rider is not scolded and not stuck: they are told what is at
+   * stake, handed the export, and left with the way through if they still
+   * mean it.
+   */
+  const attemptSignOut = async () => {
+    const result = await signOut();
+    if (!result.ok) setBlocked(true);
+  };
 
   return (
     <Card className="p-4">
@@ -81,10 +98,57 @@ export function AccountCard() {
         <Button onClick={syncNow} disabled={status === "syncing"}>
           {t("account.syncNow")}
         </Button>
-        <Button variant="ghost" onClick={() => void signOut()}>
+
+        {/*
+          Offered only when the session has actually expired, and separate
+          from signing out on purpose: this is the way back in that keeps
+          everything on the device.
+        */}
+        {status === "auth-expired" && (
+          <Button variant="accent" onClick={beginReauth}>
+            {t("account.signInAgain")}
+          </Button>
+        )}
+
+        <Button variant="ghost" onClick={() => void attemptSignOut()}>
           {t("account.signOut")}
         </Button>
       </div>
+
+      {blocked && (
+        <div className="mt-3 rounded-lg border border-warn/50 bg-warn/10 p-3">
+          <p className="text-xs font-semibold text-warn">
+            {t("account.signOutBlocked")}
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-muted">
+            {t("account.signOutBlockedDetail")}
+          </p>
+          <div className="mt-2.5 flex flex-wrap gap-2">
+            <Button
+              onClick={() =>
+                downloadFile(
+                  `shim-calc-backup-${new Date().toISOString().slice(0, 10)}.json`,
+                  JSON.stringify(exportBundle(), null, 2),
+                  "application/json",
+                )
+              }
+            >
+              {t("history.exportAll")}
+            </Button>
+            {/*
+              The way past, once they have the file. Phrased as discarding
+              rather than signing out, because that is what it does.
+            */}
+            <Button
+              variant="ghost"
+              className="!text-bad"
+              onClick={() => void signOut({ force: true })}
+            >
+              {t("account.signOutAnyway")}
+            </Button>
+          </div>
+        </div>
+      )}
     </Card>
   );
 }

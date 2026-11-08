@@ -209,6 +209,38 @@ export function reconcile(): Promise<SyncOutcome> {
   return inFlight;
 }
 
+/**
+ * A fingerprint of everything this device holds: every bike and record id
+ * against the moment it last changed.
+ *
+ * Ids and timestamps rather than contents, because that is all it has to
+ * answer — has anything been added, edited or removed since the last sync.
+ * Two devices holding the same records produce the same string.
+ */
+export function localSignature(): string {
+  const rows = [
+    ...bikesStore.get().map((b) => `b:${b.id}@${b.updatedAt}`),
+    ...recordsStore.get().map((r) => `r:${r.id}@${r.updatedAt}`),
+  ];
+  return rows.sort().join("|");
+}
+
+/**
+ * Whether this device is carrying anything the server has not got.
+ *
+ * Used before signing out, which erases the device's copy. A device that has
+ * never completed a sync has no recorded signature, and is treated as holding
+ * unsaved work — the safe way round, and true in every case that matters.
+ */
+export function hasUnsyncedWork(): boolean {
+  const { lastSyncedSignature } = syncStore.get();
+  if (lastSyncedSignature === undefined) {
+    // Nothing recorded. Only genuinely empty devices are safe to assume about.
+    return bikesStore.get().length > 0 || recordsStore.get().length > 0;
+  }
+  return localSignature() !== lastSyncedSignature;
+}
+
 async function run(): Promise<SyncOutcome> {
   const supabase = getSupabase();
   if (!supabase) return "no-backend";
@@ -286,7 +318,12 @@ async function run(): Promise<SyncOutcome> {
       // Deliberately silent. See above.
     }
 
-    syncStore.set({ lastSyncedAt: new Date().toISOString() });
+    // Recorded from the stores as they stand *after* the reconcile, so the
+    // signature describes exactly what the server now holds.
+    syncStore.set({
+      lastSyncedAt: new Date().toISOString(),
+      lastSyncedSignature: localSignature(),
+    });
     return "synced";
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

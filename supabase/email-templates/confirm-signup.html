@@ -1,0 +1,57 @@
+<!--
+  Supabase → Authentication → Emails → Templates → "Confirm sign up"
+
+  Subject line (set separately, above the body):
+    Confirm your email — Kamanya's Shim Calculator
+
+  Kept deliberately plain. This arrives from andrewjohnstone.co.za, a domain
+  no rider has ever seen, about an app they signed up to ninety seconds ago.
+  Anything that looks like marketing reads as phishing, so it says who it is
+  from, why it arrived, and what one click does — and nothing else.
+
+  Inline styles only: mail clients strip stylesheets. No images, so nothing
+  breaks when a client blocks them. The raw link is printed under the button
+  because some clients will not render the button at all.
+-->
+<div style="font-family: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 15px; line-height: 1.55; color: #1a1a1a; max-width: 480px;">
+
+  <p style="margin: 0 0 16px;">
+    Somebody using this address has just signed up to
+    <strong>Kamanya's Shim Calculator</strong> — the valve clearance and shim
+    tool for the KTM LC8 950 and 990.
+  </p>
+
+  <p style="margin: 0 0 24px;">
+    Confirm the address and you are in.
+  </p>
+
+  <p style="margin: 0 0 24px;">
+    <a href="{{ .ConfirmationURL }}"
+       style="display: inline-block; background: #ff6a13; color: #ffffff;
+              text-decoration: none; font-weight: 600; font-size: 15px;
+              padding: 12px 22px; border-radius: 8px;">
+      Confirm my email address
+    </a>
+  </p>
+
+  <p style="margin: 0 0 24px; font-size: 13px; color: #555;">
+    If the button does nothing, paste this into your browser:<br>
+    <a href="{{ .ConfirmationURL }}" style="color: #c2520c; word-break: break-all;">{{ .ConfirmationURL }}</a>
+  </p>
+
+  <p style="margin: 0 0 16px;">
+    After this one click the app works offline, so you can use it at the bike
+    with no signal.
+  </p>
+
+  <p style="margin: 0 0 24px; font-size: 13px; color: #555;">
+    If this was not you, ignore it. The account stays unconfirmed and unused,
+    and nobody can sign in with it.
+  </p>
+
+  <p style="margin: 0; font-size: 13px; color: #555;">
+    — Andrew (Kamanya). This comes from andrewjohnstone.co.za because that is
+    me; I wrote the calculator.
+  </p>
+
+</div>

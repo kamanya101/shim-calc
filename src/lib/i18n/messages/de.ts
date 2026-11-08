@@ -369,6 +369,8 @@ const de = {
     "Melde dich einmal an, und dein Ventilspiel-Verlauf folgt dir auf jedes Gerät, das du benutzt. Danach läuft die App offline — richte sie zu Hause ein und nutze sie dort, wo das Motorrad steht.",
   "signIn.offline":
     "Du bist offline. Die erste Anmeldung braucht eine Verbindung — alles danach nicht mehr.",
+  "signIn.resuming":
+    "Deine Anmeldung ist abgelaufen, deshalb hat die Synchronisierung aufgehört. Nichts ist verloren — melde dich wieder als {email} an, und alles auf diesem Gerät geht hoch.",
   "signIn.email": "E-Mail",
   "signIn.password": "Passwort",
   "signIn.passwordHint": "Mindestens 8 Zeichen.",
@@ -392,6 +394,11 @@ const de = {
   "account.syncsHere":
     "Deine Services werden mit diesem Konto synchronisiert.",
   "account.syncNow": "Jetzt synchronisieren",
+  "account.signInAgain": "Erneut anmelden",
+  "account.signOutBlocked": "Nicht abgemeldet — dieses Gerät hat Daten, die der Server nicht hat",
+  "account.signOutBlockedDetail":
+    "Beim Abmelden wird die Kopie auf diesem Gerät gelöscht, und ein Teil davon hat dein Konto nie erreicht. Exportiere sie erst, dann melde dich ab.",
+  "account.signOutAnyway": "Abmelden und verwerfen",
   "account.signOut": "Abmelden",
 
   "sync.syncing": "Wird synchronisiert…",

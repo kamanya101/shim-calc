@@ -1,7 +1,8 @@
 "use client";
 
 import { RESET_PATH } from "./app";
-import { clearLocalData, ownerStore, type Owner } from "./stores";
+import { clearLocalData, ownerStore, reauthStore, type Owner } from "./stores";
+import { hasUnsyncedWork, reconcile } from "./sync";
 import { getSupabase } from "./supabase";
 
 export type AuthResult =
@@ -23,6 +24,10 @@ function adopt(owner: Owner): void {
   const previous = ownerStore.get();
   if (previous && previous.userId !== owner.userId) clearLocalData();
   ownerStore.set(owner);
+  // Whether this was an ordinary sign-in or a rider resuming an expired
+  // session, they are through — and the check above has already dealt with it
+  // being somebody else this time.
+  reauthStore.set(false);
 }
 
 /**
@@ -192,7 +197,35 @@ export async function setNewPassword(password: string): Promise<AuthResult> {
  * sign in again to see it. Local sign-out happens whether or not the server
  * can be reached — being offline must not trap somebody in an account.
  */
-export async function signOut(): Promise<void> {
+/**
+ * Signing out erases this device's copy of everything, so it refuses to do so
+ * while the device is carrying work the server has never seen.
+ *
+ * This is not hypothetical caution. A rider whose session had quietly expired
+ * kept using the app for weeks, and the remedy any of us would reach for —
+ * sign out, sign back in — was the one action that would have destroyed the
+ * service they had just recorded. The app told them nothing until it was
+ * asked directly.
+ *
+ * So the order is: get it to the server, then forget it. A last sync is
+ * attempted first, and the local data is cleared only once there is nothing
+ * left that exists solely here. If that fails, nothing is erased and the
+ * caller is told why, so it can offer an export instead.
+ *
+ * `force` is the deliberate way past, for a rider who has their backup file
+ * and means it. It is never the default and the UI asks twice.
+ */
+export type SignOutResult = { ok: true } | { ok: false; reason: "unsynced" };
+
+export async function signOut(
+  options: { force?: boolean } = {},
+): Promise<SignOutResult> {
+  if (!options.force && hasUnsyncedWork()) {
+    // One attempt to make the question moot.
+    await reconcile();
+    if (hasUnsyncedWork()) return { ok: false, reason: "unsynced" };
+  }
+
   const supabase = getSupabase();
   try {
     await supabase?.auth.signOut();
@@ -201,4 +234,25 @@ export async function signOut(): Promise<void> {
   }
   clearLocalData();
   ownerStore.set(null);
+  return { ok: true };
+}
+
+/**
+ * Step aside so the sign-in screen can be reached, without erasing anything.
+ *
+ * The case this exists for: the session has expired, syncing has stopped, and
+ * the rider needs to sign in again. Routing that through a sign-out would
+ * clear the very records that have not reached the server yet — the trap
+ * above, reached from the other side.
+ *
+ * The owner is remembered rather than dropped, so that signing in as somebody
+ * else still clears the previous rider's data the way `adopt` always has. Only
+ * signing back in as the same person keeps it.
+ */
+export function beginReauth(): void {
+  reauthStore.set(true);
+}
+
+export function endReauth(): void {
+  reauthStore.set(false);
 }

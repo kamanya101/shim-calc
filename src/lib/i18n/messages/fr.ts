@@ -362,6 +362,8 @@ const fr = {
     "Connecte-toi une fois et ton historique de jeux te suit sur tous les appareils que tu utilises. Ensuite l’application fonctionne hors ligne — installe-la à la maison, sers-t’en là où est la moto.",
   "signIn.offline":
     "Tu es hors ligne. La première connexion demande du réseau — plus rien après.",
+  "signIn.resuming":
+    "Ta connexion a expiré, la synchronisation s’est donc arrêtée. Rien n’est perdu — reconnecte-toi en tant que {email} et tout ce qui est sur cet appareil repartira.",
   "signIn.email": "E-mail",
   "signIn.password": "Mot de passe",
   "signIn.passwordHint": "Au moins 8 caractères.",
@@ -384,6 +386,11 @@ const fr = {
   // ---------------------------------------------------------------------
   "account.syncsHere": "Tes entretiens se synchronisent avec ce compte.",
   "account.syncNow": "Synchroniser maintenant",
+  "account.signInAgain": "Se reconnecter",
+  "account.signOutBlocked": "Pas déconnecté — cet appareil a des données que le serveur n’a pas",
+  "account.signOutBlockedDetail":
+    "Se déconnecter efface la copie de cet appareil, et une partie n’a jamais atteint ton compte. Exporte-la d’abord, puis déconnecte-toi.",
+  "account.signOutAnyway": "Se déconnecter et tout jeter",
   "account.signOut": "Se déconnecter",
 
   "sync.syncing": "Synchronisation…",
