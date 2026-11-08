@@ -447,6 +447,22 @@ const en = {
   "sync.failedDetail":
     "Your records are safe on this device. Try again in a moment.",
 
+// ---------------------------------------------------------------------
+  // The not-backed-up banner
+  //
+  // Silent when merely offline — that is the normal state of this app, not a
+  // fault. It speaks only when a sync was tried and failed.
+  // ---------------------------------------------------------------------
+  "syncBanner.title": "Not backed up",
+  "syncBanner.since":
+    "Your last backup was {ago}. Everything is safe on this device, but it has not reached your account.",
+  "syncBanner.neverBody":
+    "Nothing has reached your account yet. Everything is safe on this device.",
+  "syncBanner.expiredBody":
+    "Your sign-in has run out, so new services are staying on this device. They are safe. Sign in again on the History page when it suits you.",
+  "syncBanner.retry": "Try now",
+  "syncBanner.hide": "Hide",
+
   // ---------------------------------------------------------------------
   // The shared pool
   // ---------------------------------------------------------------------

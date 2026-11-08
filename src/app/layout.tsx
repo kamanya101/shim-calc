@@ -7,6 +7,7 @@ import { RecordsProvider } from "@/components/RecordsProvider";
 import { SyncProvider } from "@/components/SyncProvider";
 import { TabBar } from "@/components/TabBar";
 import { ServiceWorker } from "@/components/ServiceWorker";
+import { SyncBanner } from "@/components/SyncBanner";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -55,6 +56,12 @@ export default function RootLayout({
         <RecordsProvider>
           <AuthProvider>
             <SyncProvider>
+              {/*
+                Above everything, on every screen. The fact that a rider's work
+                has not reached their account cannot live only on the History
+                page, which is where it used to.
+              */}
+              <SyncBanner />
               {children}
               <Footer />
               <TabBar />

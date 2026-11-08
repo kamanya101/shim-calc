@@ -410,6 +410,19 @@ const de = {
   "sync.failedDetail":
     "Deine Aufzeichnungen sind auf diesem Gerät sicher. Versuch es gleich noch einmal.",
 
+// ---------------------------------------------------------------------
+  // The not-backed-up banner
+  // ---------------------------------------------------------------------
+  "syncBanner.title": "Nicht gesichert",
+  "syncBanner.since":
+    "Deine letzte Sicherung war {ago}. Alles ist auf diesem Gerät sicher, hat aber dein Konto nicht erreicht.",
+  "syncBanner.neverBody":
+    "Noch nichts hat dein Konto erreicht. Alles ist auf diesem Gerät sicher.",
+  "syncBanner.expiredBody":
+    "Deine Anmeldung ist abgelaufen, neue Services bleiben also auf diesem Gerät. Sie sind sicher. Melde dich auf der Verlauf-Seite wieder an, wenn es dir passt.",
+  "syncBanner.retry": "Jetzt versuchen",
+  "syncBanner.hide": "Ausblenden",
+
   // ---------------------------------------------------------------------
   // The shared pool
   // ---------------------------------------------------------------------

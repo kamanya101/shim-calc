@@ -402,6 +402,19 @@ const fr = {
   "sync.failedDetail":
     "Tes relevés sont en sécurité sur cet appareil. Réessaie dans un instant.",
 
+// ---------------------------------------------------------------------
+  // The not-backed-up banner
+  // ---------------------------------------------------------------------
+  "syncBanner.title": "Pas sauvegardé",
+  "syncBanner.since":
+    "Ta dernière sauvegarde date de {ago}. Tout est en sécurité sur cet appareil, mais n’a pas atteint ton compte.",
+  "syncBanner.neverBody":
+    "Rien n’a encore atteint ton compte. Tout est en sécurité sur cet appareil.",
+  "syncBanner.expiredBody":
+    "Ta connexion a expiré, les nouveaux entretiens restent donc sur cet appareil. Ils sont en sécurité. Reconnecte-toi sur la page Historique quand cela t’arrange.",
+  "syncBanner.retry": "Réessayer",
+  "syncBanner.hide": "Masquer",
+
   // ---------------------------------------------------------------------
   // The shared pool
   // ---------------------------------------------------------------------

@@ -413,6 +413,19 @@ const af = {
   "sync.failedDetail":
     "Jou rekords is veilig op hierdie toestel. Probeer oor ’n oomblik weer.",
 
+// ---------------------------------------------------------------------
+  // The not-backed-up banner
+  // ---------------------------------------------------------------------
+  "syncBanner.title": "Nie gerugsteun nie",
+  "syncBanner.since":
+    "Jou laaste rugsteun was {ago}. Alles is veilig op hierdie toestel, maar dit het nie jou rekening bereik nie.",
+  "syncBanner.neverBody":
+    "Nog niks het jou rekening bereik nie. Alles is veilig op hierdie toestel.",
+  "syncBanner.expiredBody":
+    "Jou aanmelding het verval, so nuwe dienste bly op hierdie toestel. Hulle is veilig. Teken weer in op die Geskiedenis-bladsy wanneer dit jou pas.",
+  "syncBanner.retry": "Probeer nou",
+  "syncBanner.hide": "Versteek",
+
   // ---------------------------------------------------------------------
   // The shared pool
   // ---------------------------------------------------------------------
