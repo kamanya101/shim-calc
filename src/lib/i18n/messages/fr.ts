@@ -370,9 +370,10 @@ const fr = {
   "signIn.forgotBlurb":
     "On t’envoie un lien par e-mail pour en définir un nouveau. Tes entretiens restent exactement où ils sont.",
   "signIn.confirmSent":
-    "Compte créé. Cherche le lien de confirmation dans tes e-mails, puis reviens te connecter.",
+    "Compte créé. Nous avons envoyé un lien de confirmation à {email} — ouvre-le, puis reviens te connecter. Si cette adresse n’est pas la bonne, réinscris-toi avec la bonne.",
   "signIn.resetSent":
     "Si un compte existe à cette adresse, un lien est en route. Il ne marche qu’une fois, et seulement pendant une heure environ.",
+  "signIn.didYouMean": "Tu voulais dire {email} ? Touche pour l’utiliser.",
   "signIn.busy": "Un instant…",
   "signIn.submitIn": "Se connecter",
   "signIn.submitUp": "Créer un compte",

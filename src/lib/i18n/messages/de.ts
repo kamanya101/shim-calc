@@ -377,9 +377,10 @@ const de = {
   "signIn.forgotBlurb":
     "Wir schicken dir per E-Mail einen Link, um ein neues zu setzen. Deine Services bleiben genau da, wo sie sind.",
   "signIn.confirmSent":
-    "Konto angelegt. Sieh in deinen E-Mails nach dem Bestätigungslink, dann komm zurück und melde dich an.",
+    "Konto angelegt. Wir haben einen Bestätigungslink an {email} geschickt — öffne ihn, komm dann zurück und melde dich an. Stimmt die Adresse nicht, registriere dich noch einmal mit der richtigen.",
   "signIn.resetSent":
     "Falls es zu dieser Adresse ein Konto gibt, ist ein Link unterwegs. Er funktioniert einmal, und nur etwa eine Stunde lang.",
+  "signIn.didYouMean": "Meintest du {email}? Zum Übernehmen tippen.",
   "signIn.busy": "Einen Moment…",
   "signIn.submitIn": "Anmelden",
   "signIn.submitUp": "Konto anlegen",

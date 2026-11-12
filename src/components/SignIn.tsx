@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { APP_NAME } from "@/lib/app";
 import { requestPasswordReset, signIn, signUp } from "@/lib/auth";
+import { suggestEmail } from "@/lib/email";
 import { LanguageButton } from "./LanguageButton";
 import { useT } from "./LocaleProvider";
 import { Button, Card } from "./ui";
@@ -26,6 +27,8 @@ export function SignIn({ resuming }: { resuming?: string } = {}) {
   const t = useT();
   const [mode, setMode] = useState<Mode>("in");
   const [email, setEmail] = useState("");
+  /** The address they probably meant, when this one looks like a slip. */
+  const [suggestion, setSuggestion] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -115,10 +118,34 @@ export function SignIn({ resuming }: { resuming?: string } = {}) {
               required
               autoComplete="email"
               autoCapitalize="none"
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                // Cleared while they type. Second-guessing somebody halfway
+                // through their own address is just noise.
+                setSuggestion(null);
+              }}
+              onBlur={() => setSuggestion(suggestEmail(email))}
               className={field}
             />
           </label>
+
+          {/*
+            A suggestion, never a block. Somebody on a real address a letter
+            away from a common one has to be able to carry on — so this offers
+            the correction and otherwise gets out of the way.
+          */}
+          {suggestion && (
+            <button
+              type="button"
+              onClick={() => {
+                setEmail(suggestion);
+                setSuggestion(null);
+              }}
+              className="-mt-1 text-left text-xs font-semibold text-warn underline underline-offset-2"
+            >
+              {t("signIn.didYouMean", { email: suggestion })}
+            </button>
+          )}
 
           {mode !== "forgot" && (
             <label className="flex flex-col gap-1">
@@ -152,7 +179,7 @@ export function SignIn({ resuming }: { resuming?: string } = {}) {
               server, not from the dictionaries. */}
           {error && <p className="text-sm text-bad">{error}</p>}
           {confirm && (
-            <p className="text-sm text-ok">{t("signIn.confirmSent")}</p>
+            <p className="text-sm text-ok">{t("signIn.confirmSent", { email })}</p>
           )}
           {sent && <p className="text-sm text-ok">{t("signIn.resetSent")}</p>}
 

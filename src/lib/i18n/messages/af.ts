@@ -381,9 +381,10 @@ const af = {
   "signIn.forgotBlurb":
     "Ons stuur jou ’n skakel per e-pos om ’n nuwe een te stel. Jou dienste bly presies waar hulle is.",
   "signIn.confirmSent":
-    "Rekening geskep. Kyk in jou e-pos vir ’n bevestigingskakel, kom dan terug en teken in.",
+    "Rekening geskep. Ons het ’n bevestigingskakel na {email} gestuur — maak dit oop, kom dan terug en teken in. As daardie adres nie reg is nie, teken weer aan met die korrekte een.",
   "signIn.resetSent":
     "As daardie adres ’n rekening het, is ’n skakel op pad. Dit werk een keer, en net vir omtrent ’n uur.",
+  "signIn.didYouMean": "Het jy {email} bedoel? Tik om dit te gebruik.",
   "signIn.busy": "Net ’n oomblik…",
   "signIn.submitIn": "Teken in",
   "signIn.submitUp": "Skep rekening",

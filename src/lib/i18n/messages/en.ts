@@ -415,9 +415,12 @@ const en = {
   "signIn.forgotBlurb":
     "We’ll email you a link to set a new one. Your services stay exactly where they are.",
   "signIn.confirmSent":
-    "Account created. Check your email for a confirmation link, then come back and sign in.",
+    "Account created. We sent a confirmation link to {email} — open it, then come back and sign in. If that address is not right, sign up again with the correct one.",
   "signIn.resetSent":
     "If that address has an account, a link is on its way. It works once, and only for about an hour.",
+  // Shown when the typed domain is a letter or two from a common one. A
+  // suggestion, never a block — tapping it accepts the correction.
+  "signIn.didYouMean": "Did you mean {email}? Tap to use it.",
   "signIn.busy": "Just a moment…",
   "signIn.submitIn": "Sign in",
   "signIn.submitUp": "Create account",
